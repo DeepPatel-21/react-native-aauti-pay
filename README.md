@@ -11,17 +11,14 @@
 `npm install react-native-aauti-pay`
 `yarn add react-native-aauti-pay`
 
-## Manual installation
+### Manual installation
 
-#### You need to manually installed below plugins.
+##### You need to manually installed below plugins.
 
-[react-native-paper](https://www.npmjs.com/package/react-native-paper)
-
-[react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn)
-
-[@stripe/stripe-react-native](https://www.npmjs.com/package/@stripe/stripe-react-native)
-
-[@gorhom/bottom-sheet](https://www.npmjs.com/package/@gorhom/bottom-sheet)
+- [react-native-paper](https://www.npmjs.com/package/react-native-paper)
+- [react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn)
+- [@stripe/stripe-react-nativeÏ](https://www.npmjs.com/package/@stripe/stripe-react-native)
+- [@gorhom/bottom-sheet](https://www.npmjs.com/package/@gorhom/bottom-sheet)
 
 ##### Enable Android Pay in your Manifest
 
