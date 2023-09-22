@@ -6,6 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DeepPatel-21/react-native-aauti-pay"
+  },
   "author": "Ronak Groovy || Deep Groovy",
   "license": "ISC",
   "dependencies": {
