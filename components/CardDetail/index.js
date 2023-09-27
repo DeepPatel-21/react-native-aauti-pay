@@ -485,22 +485,23 @@ export default function CardDetail(props) {
           item["payment_method.payment_method"] === "Google Pay")
         ? null
         : item?.type === type && (
-            <Animated.View
-              entering={FadeInDown}
-              exiting={FadeOutUp}
+            <Card
               key={item?.id}
-              activeOpacity={0.8}
+              style={[
+                styles.paymentBox,
+                {
+                  borderColor:
+                    isHighlightIndex === index ? "#32CD32" : "#F8F8F8",
+                },
+              ]}
             >
-              <Card
-                style={[
-                  styles.paymentBox,
-                  {
-                    borderColor:
-                      isHighlightIndex === index ? "#32CD32" : "#F8F8F8",
-                  },
-                ]}
+              <Animated.View
+                entering={FadeInDown}
+                exiting={FadeOutUp}
+                activeOpacity={0.8}
               >
                 <TouchableOpacity
+                  activeOpacity={0.7}
                   onPress={() => {
                     paymentMethod[index]["payment_method.payment_method"] !==
                       "Apple Pay" &&
@@ -582,8 +583,8 @@ export default function CardDetail(props) {
                     </Text>
                   </View>
                 </TouchableOpacity>
-              </Card>
-            </Animated.View>
+              </Animated.View>
+            </Card>
           );
     });
   }
@@ -597,7 +598,7 @@ export default function CardDetail(props) {
       >
         {isArray(paymentMethod) && !isEmpty(paymentMethod) ? (
           isEmpty(isShow.toString()) ? (
-            <ScrollView>
+            <ScrollView bounces={false}>
               {!isEmpty(isOther) && (
                 <>
                   <Text style={styles.typeText}>Other Payment</Text>
