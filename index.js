@@ -30,9 +30,9 @@ import { currency_symbol } from "./components/staticData";
 import Cbutton from "./components/CButton";
 
 // this API call will give you which payment we have to do
-const liveUrl = "https://staging.aautipay.com/plugin/";
+// const liveUrl = "https://staging.aautipay.com/plugin/";
 // const liveUrl = 'http://192.168.0.126:3000/plugin/';
-// const liveUrl = 'https://dev.aautipay.com/plugin/';
+const liveUrl = "https://dev.aautipay.com/plugin/";
 
 const PaymentAgreegator = (props) => {
   // styling for whole component
