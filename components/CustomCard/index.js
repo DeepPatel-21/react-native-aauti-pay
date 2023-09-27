@@ -27,6 +27,7 @@ import Icon from "react-native-vector-icons/Octicons";
 import { TextInput } from "react-native-paper";
 import { currency_symbol } from "../staticData";
 import Cbutton from "../CButton";
+import InAppBrowser from "react-native-inappbrowser-reborn";
 
 function CustomCard(props, ref) {
   const {
@@ -36,6 +37,7 @@ function CustomCard(props, ref) {
     setPaySuccess,
     liveUrl,
     themeColor,
+    isChargeIncluded,
   } = props;
 
   const styles = StyleSheet.create({
@@ -270,7 +272,7 @@ function CustomCard(props, ref) {
         return response.json();
       })
       .then((data) => {
-        paymentApi(data?.id, "stripe", "", 1);
+        SaveOrder(data?.id, "stripe", "", 1);
       })
       .catch((error) => {
         console.error("Error creating token:", error);
@@ -282,11 +284,51 @@ function CustomCard(props, ref) {
       });
   };
 
-  async function paymentApi(token, type, cusID, isNew) {
+  async function SaveOrder(token, type, cusID, isNew) {
+    setPaySuccess("loading");
+    try {
+      const data = {
+        name: paymentData?.name,
+        amount: paymentData?.amount,
+        final_amount: isChargeIncluded
+          ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
+          : paymentData?.amount,
+        app_token: paymentData?.app_token,
+        country_id: cardBrandSelect?.country_id,
+        currency: paymentData?.currency,
+        mode: paymentData?.mode,
+        payment_method_id: cardBrandSelect?.payment_method_id,
+        payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
+        transaction_code: paymentData?.transaction_code,
+        gateway_code: cardBrandSelect?.charge_object?.gateway_code,
+        gateway_id: cardBrandSelect?.gateway_id,
+        email: paymentData?.email,
+      };
+      const response = await getApiDataProgressPayment(
+        `${liveUrl}save-order`,
+        "POST",
+        JSON.stringify(data)
+      );
+      if (response?.status == false) {
+        Alert.alert(
+          "Error",
+          response?.message || "Please try again. Something got wrong."
+        );
+      } else {
+        paymentApi(token, type, cusID, isNew, response?.code);
+      }
+    } catch (error) {
+      console.log("error:", error);
+    }
+  }
+
+  async function paymentApi(token, type, cusID, isNew, code) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
+        final_amount: isChargeIncluded
+          ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
+          : paymentData?.amount,
       },
       token,
     };
@@ -303,17 +345,7 @@ function CustomCard(props, ref) {
 
     const Ddata = {
       data: ciphertext,
-      name: paymentData?.name,
-      country_id: cardBrandSelect?.country_id,
-      transaction_code: paymentData?.transaction_code,
-      payment_method_id: cardBrandSelect?.payment_method_id,
-      payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
-      mode: paymentData?.mode,
-      gateway_code: cardBrandSelect?.charge_object?.gateway_code,
-      gateway_id: cardBrandSelect?.gateway_id,
-      app_token: paymentData?.app_token,
-      currency: paymentData?.currency,
-      email: paymentData?.email,
+      order_code: code,
       is_new: isNew,
     };
 
@@ -325,13 +357,51 @@ function CustomCard(props, ref) {
       );
 
       if (isUndefined(response) || response?.status === false) {
-        setPaySuccess("fail");
+        setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
         }, 3000);
       } else {
-        setPaySuccess("success");
-        onPaymentDone();
+        if (!isEmpty(response?.data?.url)) {
+          const result = await InAppBrowser.open(response?.data?.url, {
+            // iOS Properties
+            dismissButtonStyle: "cancel",
+            preferredBarTintColor: "#000000",
+            preferredControlTintColor: "white",
+            readerMode: false,
+            animated: true,
+            modalPresentationStyle: "pageSheet",
+            modalTransitionStyle: "coverVertical",
+            modalEnabled: true,
+            enableBarCollapsing: true,
+            // Android Properties
+            showTitle: false,
+            toolbarColor: "#000000",
+            secondaryToolbarColor: "black",
+            navigationBarColor: "black",
+            navigationBarDividerColor: "white",
+            enableUrlBarHiding: true,
+            enableDefaultShare: true,
+            forceCloseOnRedirection: false,
+            // Specify full animation resource identifier(package:anim/name)
+            // or only resource name(in case of animation bundled with app).
+            animations: {
+              startEnter: "slide_in_right",
+              startExit: "slide_out_left",
+              endEnter: "slide_in_left",
+              endExit: "slide_out_right",
+            },
+          });
+          if (result?.type === "cancel") {
+            setPaySuccess("fail");
+            setTimeout(() => {
+              setPaySuccess(false);
+            }, 3000);
+          }
+        } else {
+          setPaySuccess("success");
+          onPaymentDone();
+        }
       }
       setBtnLoader(false);
       setListLoader("");
@@ -443,7 +513,7 @@ function CustomCard(props, ref) {
 
         if (tokenMatch && tokenMatch[1]) {
           const tokenValue = tokenMatch[1];
-          paymentApi(tokenValue, "braintree", cusID, 1);
+          SaveOrder(tokenValue, "braintree", cusID, 1);
         } else {
           console.log("Token not found in the XML.");
           setBtnLoader(false);
@@ -564,6 +634,7 @@ function CustomCard(props, ref) {
         payment_method_id: cardBrandSelect?.payment_method_id,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         email: paymentData?.email,
+        payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
       };
 
       const response = await getApiDataProgressPayment(
@@ -636,7 +707,7 @@ function CustomCard(props, ref) {
       .then((response) => response.json())
       .then((result) => {
         if (result?.resultCode === "Authorised") {
-          paymentApi(result?.pspReference, "adyen", resData?.customer_id, 1);
+          SaveOrder(result?.pspReference, "adyen", resData?.customer_id, 1);
         } else {
           setPaySuccess("fail");
           setTimeout(() => {
@@ -695,6 +766,7 @@ function CustomCard(props, ref) {
         email: paymentData?.email,
         mode: paymentData?.mode,
         payment_method_id: cardBrandSelect?.charge_object?.payment_method_id,
+        payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
       };
 
       const response = await getApiDataProgressPayment(
@@ -870,7 +942,7 @@ function CustomCard(props, ref) {
         const customerProfileID = data.match(
           /<customerPaymentProfileId>(.*?)<\/customerPaymentProfileId>/
         );
-        paymentApi(customerProfileID[1], "authorize", customerID, 1);
+        SaveOrder(customerProfileID[1], "authorize", customerID, 1);
       } else {
         Alert.alert("Error", "Please try again after some time.");
         setBtnLoader(false);
@@ -984,9 +1056,9 @@ function CustomCard(props, ref) {
                           cardBrandSelect?.charge_object?.charges_obj
                             ?.gateway_name === "authorize_net"
                         ) {
-                          paymentApi(item?.token, "adyen", cusMainID, 0);
+                          SaveOrder(item?.token, "adyen", cusMainID, 0);
                         } else {
-                          paymentApi(item?.token, "", "", 0);
+                          SaveOrder(item?.token, "", "", 0);
                         }
                         setListLoader(index);
                         setPaySuccess("loading");
@@ -1073,12 +1145,44 @@ function CustomCard(props, ref) {
             style={styles.input}
             activeOutlineColor="#0068EF"
             outlineColor="#9D9D9D"
-            error={cardErr?.card}
+            error={cardErr?.card || !isEmpty(enteredCard)}
             placeholder="Card Number"
             theme={{ colors: { error: "red" } }}
             contentStyle={{ paddingBottom: 4 }}
             keyboardType="numeric"
           />
+          {enteredCard && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: "red",
+                }}
+              >
+                {`You have entered ${enteredCard} card, Please `}
+                <TouchableOpacity activeOpacity={0.7} onPress={() => {}}>
+                  <Text
+                    style={{
+                      textDecorationLine: "underline",
+                      color: "#0068EF",
+                      // marginTop: -4,
+                    }}
+                  >
+                    click here
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={{
+                    color: "red",
+                  }}
+                >{` to make payment by ${enteredCard} card`}</Text>
+              </Text>
+            </View>
+          )}
           <View
             style={{
               flexDirection: "row",
@@ -1138,35 +1242,6 @@ function CustomCard(props, ref) {
             />
           </View>
         </View>
-        {enteredCard && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: "red",
-              }}
-            >
-              {`You have entered ${enteredCard} card, Please `}
-              <TouchableOpacity activeOpacity={0.7} onPress={() => {}}>
-                <Text
-                  style={{ textDecorationLine: "underline", color: "#0068EF" }}
-                >
-                  click here
-                </Text>
-              </TouchableOpacity>
-              <Text
-                style={{
-                  color: "red",
-                }}
-              >{` to make payment by ${enteredCard} card`}</Text>
-            </Text>
-          </View>
-        )}
 
         <Text style={{ color: "#9D9D9D", marginTop: 10, fontSize: 18 }}>
           <Icon name="shield-check" size={20} color={"#9D9D9D"} /> We are not
@@ -1178,7 +1253,9 @@ function CustomCard(props, ref) {
             loader={BtnLoader}
             disabled={isDisable || BtnLoader}
             buttonTitle={`Pay - ${currency_symbol[paymentData?.currency]}${
-              cardBrandSelect?.charge_object?.charges_obj?.final_amount
+              isChargeIncluded
+                ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
+                : paymentData?.amount
             }`}
             onButtonClick={() => {
               Alert.alert(

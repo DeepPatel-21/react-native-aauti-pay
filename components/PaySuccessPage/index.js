@@ -3,7 +3,7 @@ import { View, Text, Image, ActivityIndicator } from "react-native";
 import React from "react";
 import { BaseColors } from "../theme";
 
-const PaySuccess = ({ responseType }) => {
+const PaySuccess = ({ responseType, message }) => {
   const isLoading = responseType === "loading";
   const payFail = responseType === "fail";
   const paySuccessFull = responseType === "success";
@@ -62,7 +62,7 @@ const PaySuccess = ({ responseType }) => {
             ? "Please wait, Verifying payment status..."
             : paySuccessFull
             ? "Your payment has been successful!"
-            : "Any amount deducted will be refunded within 7 days"}
+            : message || "Any amount deducted will be refunded within 7 days"}
         </Text>
       </View>
 
@@ -78,6 +78,7 @@ const PaySuccess = ({ responseType }) => {
             fontSize: 16,
             fontWeight: "bold",
             color: BaseColors.greyTxt,
+            marginRight: 4,
           }}
         >
           Powerd by
@@ -86,7 +87,7 @@ const PaySuccess = ({ responseType }) => {
         <Image
           resizeMode="contain"
           alt="Aauti"
-          source={require("../Images/aauti.png")}
+          source={require("../Images/aautiPA.png")}
           style={{
             width: 60,
             height: 60,

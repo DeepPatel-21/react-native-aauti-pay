@@ -42,7 +42,6 @@ export default function TabSwitch(props) {
     (tab) => tab.id === props.activeTab.id
   );
   const IOS = Platform.OS === "ios";
-
   const [translateValue] = useState(
     new Animated.Value((isRTL ? -1 : 1) * (1 + activeTabIndex * tabSize + 20))
   );
@@ -111,7 +110,12 @@ export default function TabSwitch(props) {
             <AntDesign
               name="caretdown"
               color={"#0068EF"}
-              style={{ position: "absolute", bottom: -8 }}
+              style={{
+                position: "absolute",
+                bottom: -8,
+                zIndex: 1,
+                fontSize: 10,
+              }}
             />
           </Animated.View>
           {tabs.map((obj, index) => (
@@ -123,7 +127,6 @@ export default function TabSwitch(props) {
               }}
               onLongPress={() => {
                 onLongPress(obj?.charge_object?.longpress_data);
-                // console.log('hiii');
               }}
               style={{
                 ...styles.tab,
@@ -133,8 +136,9 @@ export default function TabSwitch(props) {
               <Image
                 source={{ uri: obj["payment_sub_method.logo"] }}
                 style={{
-                  width: 40,
+                  width: 60,
                   height: 40,
+                  marginBottom: 6,
                 }}
                 resizeMode="contain"
                 alt={obj["payment_sub_method.type"]}

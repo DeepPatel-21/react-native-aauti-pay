@@ -1,41 +1,40 @@
-import {Platform, StyleSheet} from 'react-native';
+import { Platform, StyleSheet } from "react-native";
 
-const IOS = Platform.OS === 'ios';
+const IOS = Platform.OS === "ios";
 const tabWidth = 40;
 export const styles = StyleSheet.create({
   wrapper: {
-    alignSelf: 'center',
-    position: 'relative',
-    borderColor: '#00000020',
+    alignSelf: "center",
+    position: "relative",
+    borderColor: "#00000020",
     paddingBottom: 4,
   },
   slider: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
-    alignSelf: 'center',
     left: 0,
-    color: '#0068EF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: "#0068EF",
+    alignItems: "center",
+    height: 68,
   },
   tab: {
     width: tabWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabText: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   container: {
     marginTop: 10,
   },
   shadow: {
     width: 10, // Adjust as needed
-    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Shadow color
-    shadowColor: '#000',
-    shadowOffset: {width: 10, height: 0},
+    backgroundColor: "rgba(0, 0, 0, 0.2)", // Shadow color
+    shadowColor: "#000",
+    shadowOffset: { width: 10, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 10,
   },

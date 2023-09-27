@@ -30,6 +30,7 @@ const DForm = (props) => {
     onPaymentDone,
     setPaySuccess,
     themeColor,
+    isChargeIncluded,
   } = props;
   const [paymentObj, setPaymentObj] = useState({});
   const [btnLoader, setBtnLoader] = useState(false);
@@ -179,12 +180,52 @@ const DForm = (props) => {
     }
   };
 
-  async function paymentApi(bankData, isNew, cusID) {
+  async function SaveOrder(bankData, isNew, cusID) {
+    setPaySuccess("loading");
+    try {
+      const data = {
+        name: paymentData?.name,
+        amount: paymentData?.amount,
+        final_amount: isChargeIncluded
+          ? PayObj?.charge_object?.charges_obj?.final_amount
+          : paymentData?.amount,
+        app_token: paymentData?.app_token,
+        country_id: PayObj?.country_id,
+        currency: paymentData?.currency,
+        mode: paymentData?.mode,
+        payment_method_id: PayObj?.payment_method_id,
+        payment_sub_method_id: PayObj?.payment_sub_method_id,
+        transaction_code: paymentData?.transaction_code,
+        gateway_code: PayObj?.charge_object?.gateway_code,
+        gateway_id: PayObj?.gateway_id,
+        email: paymentData?.email,
+      };
+      const response = await getApiDataProgressPayment(
+        `${liveUrl}save-order`,
+        "POST",
+        JSON.stringify(data)
+      );
+      if (response?.status == false) {
+        Alert.alert(
+          "Error",
+          response?.message || "Please try again. Something got wrong."
+        );
+      } else {
+        paymentApi(bankData, isNew, cusID, response?.code);
+      }
+    } catch (error) {
+      console.log("error:", error);
+    }
+  }
+
+  async function paymentApi(bankData, isNew, cusID, code) {
     const isType = PayObj?.charge_object?.charges_obj?.gateway_name;
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
+        final_amount: isChargeIncluded
+          ? PayObj?.charge_object?.charges_obj?.final_amount
+          : paymentData?.amount,
       },
     };
     if (isType === "adyen" || isType === "authorize_net") {
@@ -207,17 +248,7 @@ const DForm = (props) => {
 
     const Ddata = {
       data: ciphertext || "",
-      name: paymentData?.name || "",
-      country_id: PayObj?.country_id || "",
-      transaction_code: paymentData?.transaction_code || "",
-      payment_method_id: PayObj?.payment_method_id || "",
-      payment_sub_method_id: PayObj?.payment_sub_method_id || "",
-      mode: paymentData?.mode || "",
-      gateway_code: PayObj?.charge_object?.gateway_code || "",
-      gateway_id: PayObj?.gateway_id || "",
-      app_token: paymentData?.app_token || "",
-      currency: paymentData?.currency || "",
-      email: paymentData?.email || "",
+      order_code: code,
       is_new: isNew,
     };
 
@@ -228,7 +259,7 @@ const DForm = (props) => {
         JSON.stringify(Ddata)
       );
       if (isUndefined(response) || response?.status === false) {
-        setPaySuccess("fail");
+        setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
         }, 2000);
@@ -275,7 +306,7 @@ const DForm = (props) => {
     })
       .then((response) => response.json())
       .then((data) => {
-        paymentApi(data, 1);
+        SaveOrder(data, 1);
       })
       .catch((error) => {
         setBtnLoader(false);
@@ -325,7 +356,7 @@ const DForm = (props) => {
       .then((response) => response.json())
       .then((result) => {
         if (result?.resultCode === "Authorised") {
-          paymentApi(result?.pspReference, 1);
+          SaveOrder(result?.pspReference, 1);
         } else {
           setPaySuccess("fail");
           setTimeout(() => {
@@ -475,7 +506,7 @@ const DForm = (props) => {
       const customerProfileID = data.match(
         /<customerPaymentProfileId>(.*?)<\/customerPaymentProfileId>/
       );
-      paymentApi(customerProfileID[1], 1, cusID);
+      SaveOrder(customerProfileID[1], 1, cusID);
     } catch (error) {
       // Handle errors here
       setPaySuccess("fail");
@@ -570,7 +601,7 @@ const DForm = (props) => {
                     {
                       text: "OK",
                       onPress: () => {
-                        paymentApi(item?.token, 0);
+                        SaveOrder(item?.token, 0);
                         setPaySuccess("loading");
                         setListLoader(index);
                       },
@@ -656,7 +687,9 @@ const DForm = (props) => {
             loader={btnLoader}
             disabled={btnLoader}
             buttonTitle={`Pay - ${currency_symbol[paymentData?.currency]}${
-              PayObj?.charge_object?.charges_obj?.final_amount
+              isChargeIncluded
+                ? PayObj?.charge_object?.charges_obj?.final_amount
+                : paymentData?.amount
             }`}
             onButtonClick={() => Validation()}
           />

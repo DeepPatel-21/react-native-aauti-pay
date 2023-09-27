@@ -1,6 +1,6 @@
-import RadioButton from '../RadioButton';
-import _, {isEmpty, isArray} from 'lodash';
-import React from 'react';
+import RadioButton from "../RadioButton";
+import _, { isEmpty, isArray } from "lodash";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -9,27 +9,28 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-} from 'react-native';
+} from "react-native";
+import AntDesign from "react-native-vector-icons/AntDesign";
 
 export default function SubList(props) {
-  const {buttonTextStyle, buttonContainerStyle, subscriptionData} = props;
+  const { buttonTextStyle, buttonContainerStyle, subscriptionData } = props;
 
   const styles = StyleSheet.create({
     buttonContainer: {
-      backgroundColor: '#0068EF',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "#0068EF",
+      justifyContent: "center",
+      alignItems: "center",
       padding: 5,
       margin: 5,
       height: 40,
-      width: Dimensions.get('screen').width / 2.5,
+      width: Dimensions.get("screen").width / 2.5,
       borderRadius: 3,
     },
     buttonTextContainer: {
-      textAlign: 'center',
-      color: 'white',
+      textAlign: "center",
+      color: "white",
       fontSize: 20,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
   });
 
@@ -41,44 +42,48 @@ export default function SubList(props) {
         style={{
           borderBottomWidth: 1,
           padding: 20,
-          position: 'relative',
-        }}>
+          position: "relative",
+        }}
+      >
         <TouchableOpacity
           activeOpacity={1}
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 18,
             left: 18,
             zIndex: 1,
           }}
           onPress={() => {
             // setViewState('cardDetail');
-          }}>
-          <AntDesign name={'arrowleft'} size={26} color={'#000'} />
+          }}
+        >
+          <AntDesign name={"arrowleft"} size={26} color={"#000"} />
         </TouchableOpacity>
         <Text
           style={{
-            textAlign: 'center',
+            textAlign: "center",
             fontSize: 20,
-          }}>
+          }}
+        >
           Subscription Plan
         </Text>
       </View>
       <View
         style={{
           padding: 20,
-          width: '100%',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         {!isEmpty(subscriptionData?.data) && isArray(subscriptionData?.data) ? (
           subscriptionData?.data.map((item, index) => {
             return (
               <TouchableOpacity
                 style={{
-                  display: 'flex',
-                  width: '100%',
-                  flexDirection: 'row',
+                  display: "flex",
+                  width: "100%",
+                  flexDirection: "row",
                   borderWidth: 1,
                   borderRadius: 4,
                   marginTop: 10,
@@ -86,14 +91,15 @@ export default function SubList(props) {
                 }}
                 onPress={() => {
                   //   setSelectedPlan(item);
-                }}>
+                }}
+              >
                 <RadioButton
                   selected={item?.plan_id === selectPlan?.plan_id}
                   SelectedRadioColor={SelectedRadioColor}
                 />
                 <View>
                   <Text>{item?.name}</Text>
-                  <Text style={{marginTop: 4}}>
+                  <Text style={{ marginTop: 4 }}>
                     {item?.price} {item?.currency} - {item?.period}
                   </Text>
                 </View>
@@ -101,14 +107,14 @@ export default function SubList(props) {
             );
           })
         ) : (
-          <View style={{height: 200, justifyContent: 'center'}}>
-            <Text style={{fontSize: 20, fontWeight: 'bold'}}>NO DATA</Text>
+          <View style={{ height: 200, justifyContent: "center" }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>NO DATA</Text>
           </View>
         )}
         <TouchableOpacity
           onPress={() => {
             if (isEmpty(selectPlan)) {
-              Alert.alert('Error', 'Please Select Subscribe plan first.');
+              Alert.alert("Error", "Please Select Subscribe plan first.");
             } else {
               //   setWebViewState({
               //     ...webViewState,
@@ -121,13 +127,14 @@ export default function SubList(props) {
           style={[
             styles.buttonContainer,
             buttonContainerStyle,
-            {width: '100%', marginTop: 30},
-          ]}>
+            { width: "100%", marginTop: 30 },
+          ]}
+        >
           {BtnLoader ? (
             <ActivityIndicator
-              size={'small'}
+              size={"small"}
               animating
-              color={loaderColor ? loaderColor : 'white'}
+              color={loaderColor ? loaderColor : "white"}
             />
           ) : (
             <Text style={[styles.buttonTextContainer, buttonTextStyle]}>

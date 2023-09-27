@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
   modalWrapper: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "#0000",
+    backgroundColor: "#00000020",
     height: deviceHeight * 0.8 + 45,
     shadowColor: "#000000",
     shadowOffset: {
@@ -26,14 +26,16 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: "row",
     height: 70,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     overflow: "hidden",
     paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   centerTitle: {
-    flex: 1,
-    justifyContent: "center",
+    // flex: 1,
+    // justifyContent: 'center',
   },
   centerTitleText: {
     fontSize: 20,
@@ -41,6 +43,8 @@ const styles = StyleSheet.create({
   },
   moneyText: {
     fontSize: 18,
+    color: "#1D1D1D",
+    opacity: 0.5,
     marginTop: 4,
   },
   actionBtn: {

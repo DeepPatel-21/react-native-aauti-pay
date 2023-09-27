@@ -30,13 +30,9 @@ import { currency_symbol } from "./components/staticData";
 import Cbutton from "./components/CButton";
 
 // this API call will give you which payment we have to do
-// const liveUrl =
-//   'https://aauti-payment-dev-hgfmf3h6dbhdhjb7.z01.azurefd.net/api/aautipay/';
-// const liveUrl =
-//   'https://payment-gateway-apim-staging.azure-api.net/api/aautipay/';
-// const liveUrl = "http://192.168.0.125:3005/plugin/";
-const liveUrl = "https://dev.aautipay.com/plugin/";
-// const liveUrl = 'https://f707-45-64-212-213.ngrok-free.app/api/';
+const liveUrl = "https://staging.aautipay.com/plugin/";
+// const liveUrl = 'http://192.168.0.126:3000/plugin/';
+// const liveUrl = 'https://dev.aautipay.com/plugin/';
 
 const PaymentAgreegator = (props) => {
   // styling for whole component
@@ -53,6 +49,7 @@ const PaymentAgreegator = (props) => {
     webViewStyles = {},
     injectedMessage = "",
     onModalClose = () => {},
+    isChargeIncluded = true,
 
     //Main button
     buttonTitle = "Aauti Pay",
@@ -77,12 +74,14 @@ const PaymentAgreegator = (props) => {
 
   const [viewState, setViewState] = useState("");
   const [paySuccess, setPaySuccess] = useState(false);
+  const [failMessage, setFailMessage] = useState("");
   const [subscriptionData, setSubscriptionData] = useState({});
 
-  const [activeIndex, setActiveIndex] = useState("");
+  const [activeIndex, setActiveIndex] = useState([]);
   const [pageLoade, setPageLoader] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [cardBrandSelect, setCardBrandSelect] = useState(null);
+  const [isShow, setisShow] = useState("");
 
   const PeriodData = [
     { value: "weekly", label: "Weekly" },
@@ -100,20 +99,28 @@ const PaymentAgreegator = (props) => {
     const handleDeepLink = (event) => {
       const url = event.url;
       // Check if the URL contains the specified pattern
-      if (url.includes("success")) {
+      if (url.includes("payment_intent")) {
+        var regex = /[?&]([^=#]+)=([^&#]*)/g,
+          params = {},
+          match;
+        while ((match = regex.exec(url))) {
+          params[match[1]] = match[2];
+        }
+
+        checkStripePayment(params?.payment_intent);
+      } else if (url.includes("success")) {
         console.log("Payment Done.");
 
         setPaySuccess("success");
         onPaymentDone();
         // Close the InAppBrowser
-        InAppBrowser.close();
       } else if (url.includes("failure")) {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
         }, 3000);
-        InAppBrowser.close();
       }
+      InAppBrowser.close();
     };
     Linking.addEventListener("url", handleDeepLink);
 
@@ -124,12 +131,48 @@ const PaymentAgreegator = (props) => {
   }, []);
 
   useEffect(() => {
+    if (!paySuccess) {
+      setisShow("");
+    }
+  }, [paySuccess]);
+
+  async function checkStripePayment(payInt) {
+    const stripeSecretKey =
+      "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
+
+    fetch(`https://api.stripe.com/v1/payment_intents/${payInt}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${stripeSecretKey}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.status == "succeeded") {
+          setPaySuccess("success");
+          onPaymentDone();
+        } else {
+          setPaySuccess("fail");
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 3000);
+        }
+        // Handle the response data here
+      })
+      .catch((error) => {
+        // Handle any errors here
+      });
+  }
+
+  useEffect(() => {
     if (!webViewState?.modalBool) {
       onModalClose();
       setViewState("");
       setSubscriptionData({});
       setPaymentMethod([]);
       setPaySuccess(false);
+      setActiveIndex([]);
+      setisShow("");
     }
   }, [webViewState]);
 
@@ -263,26 +306,47 @@ const PaymentAgreegator = (props) => {
                   currency_symbol[paymentData?.currency]
                 }${paymentData.amount?.toFixed(2)}`}
               </Text>
-              <Text
-                style={[styles.moneyText, { color: "#1D1D1D", opacity: 0.5 }]}
-              >
-                Select payment source
-              </Text>
+              {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
+                <Text style={styles.moneyText}>Select payment source</Text>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setisShow("");
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginRight: 4,
+                  }}
+                >
+                  <MaterialIcons
+                    name="arrow-back"
+                    style={{ fontSize: 18, opacity: 0.5 }}
+                    color="#1D1D1D"
+                  />
+                  <Text style={[styles.moneyText, { marginTop: 0 }]}>
+                    Click here to go back
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-            <View style={[styles.actionBtn, { alignItems: "center" }]}>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setWebViewState({
-                    ...webViewState,
-                    modalBool: false,
-                    urlLink: "",
-                  });
-                }}
-              >
-                <AntDesign name="closecircleo" size={24} color={"red"} />
-              </TouchableOpacity>
-            </View>
+            {paySuccess !== "loading" && (
+              <View style={[styles.actionBtn, { alignItems: "center" }]}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => {
+                    setWebViewState({
+                      ...webViewState,
+                      modalBool: false,
+                      urlLink: "",
+                    });
+                  }}
+                >
+                  <AntDesign name="closecircleo" size={24} color={"red"} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           <View
             style={[
@@ -302,7 +366,7 @@ const PaymentAgreegator = (props) => {
               >
                 {/* <CardDetails /> */}
                 {paySuccess ? (
-                  <PaySuccess responseType={paySuccess} />
+                  <PaySuccess responseType={paySuccess} message={failMessage} />
                 ) : (
                   <>
                     {pageLoade ? (
@@ -373,13 +437,20 @@ const PaymentAgreegator = (props) => {
                     ) : viewState === "cardDetail" ? (
                       <CardDetail
                         {...props}
+                        isShow={isShow}
+                        setisShow={(v) => {
+                          setisShow(v);
+                        }}
                         onPaymentDone={onPaymentDone}
                         paymentMethod={paymentMethod}
                         liveUrl={liveUrl}
                         webViewStyles={webViewStyles}
                         injectedMessage={injectedMessage}
                         activeIndex={activeIndex}
-                        setPaySuccess={setPaySuccess}
+                        setPaySuccess={(type, message) => {
+                          setPaySuccess(type);
+                          setFailMessage(message);
+                        }}
                       />
                     ) : null}
                   </>
@@ -401,6 +472,7 @@ PaymentAgreegator.propTypes = {
   loader: PropTypes.bool,
   mainButtonContainerStyle: PropTypes.object,
   themeColor: PropTypes.string,
+  isChargeIncluded: PropTypes.bool,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -411,6 +483,7 @@ PaymentAgreegator.defaultProps = {
   loader: false,
   mainButtonContainerStyle: {},
   themeColor: "#F5F9FF",
+  isChargeIncluded: true,
 };
 
 export default PaymentAgreegator;

@@ -63,7 +63,8 @@ const styles = StyleSheet.create({
   },
   paymentSmallBox: {
     borderWidth: 1,
-    margin: 10,
+    marginHorizontal: 16,
+    marginVertical: 10,
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
     paddingHorizontal: 2,
-    color: "#000",
+    color: "#0068EF",
   },
   paymentSBImage: {
     width: "auto",
