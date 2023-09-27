@@ -597,7 +597,7 @@ export default function CardDetail(props) {
       >
         {isArray(paymentMethod) && !isEmpty(paymentMethod) ? (
           isEmpty(isShow.toString()) ? (
-            <>
+            <ScrollView>
               {!isEmpty(isOther) && (
                 <>
                   <Text style={styles.typeText}>Other Payment</Text>
@@ -624,7 +624,7 @@ export default function CardDetail(props) {
                   </View>
                 </>
               )}
-            </>
+            </ScrollView>
           ) : (
             <ScrollView
               ref={horizontalScrollRef}
