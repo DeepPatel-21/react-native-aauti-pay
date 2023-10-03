@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   paymentBox: {
-    borderWidth: 1,
+    borderWidth: 2,
     width: deviceWidth / 2 - 30,
     height: deviceWidth / 2.3 - 30,
     margin: 10,

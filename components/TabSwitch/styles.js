@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
     position: "relative",
     borderColor: "#00000020",
-    paddingBottom: 4,
+    paddingBottom: 6,
   },
   slider: {
     position: "absolute",

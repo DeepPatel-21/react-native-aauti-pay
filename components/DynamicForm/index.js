@@ -31,6 +31,7 @@ const DForm = (props) => {
     setPaySuccess,
     themeColor,
     isChargeIncluded,
+    chargeData,
   } = props;
   const [paymentObj, setPaymentObj] = useState({});
   const [btnLoader, setBtnLoader] = useState(false);
@@ -39,6 +40,17 @@ const DForm = (props) => {
   const [cusMainID, setCusID] = useState("");
   const [listLoader, setListLoader] = useState("");
   const [mainLoader, setMainLoader] = useState(false);
+  const [isShowBreackdown, setIsShowBreackdown] = useState(false);
+
+  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
+  const paymentGatwayFee =
+    PayObj?.charge_object?.charges_obj?.final_amount -
+    paymentData?.amount?.toFixed(2);
+
+  const finalAmount =
+    chargeData?.service_type === "inclusive"
+      ? paymentData?.amount + amountToAdd
+      : PayObj?.charge_object?.charges_obj?.final_amount;
 
   useEffect(() => {
     getCardList();
@@ -185,10 +197,8 @@ const DForm = (props) => {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? PayObj?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        amount: paymentData?.amount + amountToAdd,
+        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: PayObj?.country_id,
         currency: paymentData?.currency,
@@ -198,6 +208,7 @@ const DForm = (props) => {
         transaction_code: paymentData?.transaction_code,
         gateway_code: PayObj?.charge_object?.gateway_code,
         gateway_id: PayObj?.gateway_id,
+        service_type: chargeData?.service_type,
         email: paymentData?.email,
       };
       const response = await getApiDataProgressPayment(
@@ -206,10 +217,10 @@ const DForm = (props) => {
         JSON.stringify(data)
       );
       if (response?.status == false) {
-        Alert.alert(
-          "Error",
-          response?.message || "Please try again. Something got wrong."
-        );
+        setPaySuccess("fail", response?.message);
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 3000);
       } else {
         paymentApi(bankData, isNew, cusID, response?.code);
       }
@@ -223,9 +234,7 @@ const DForm = (props) => {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? PayObj?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
       },
     };
     if (isType === "adyen" || isType === "authorize_net") {
@@ -681,16 +690,162 @@ const DForm = (props) => {
           <Icon name="shield-check" size={20} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
+
+        <View
+          style={{
+            marginTop: 10,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+            Pricing Breackdown
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+          >
+            <MaterialIcons
+              name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+              size={40}
+              color={"#0068EF"}
+              style={{ marginEnd: -10 }}
+            />
+          </TouchableOpacity>
+        </View>
+        {isShowBreackdown && (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Amount:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {paymentData?.amount}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Platform fee:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {amountToAdd}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Payment gateway charges:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {chargeData?.service_type === "inclusive"
+                  ? 0
+                  : paymentGatwayFee}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 4,
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#0068EF",
+                }}
+                numberOfLines={2}
+              >
+                Final amount:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#0068EF",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {finalAmount}
+              </Text>
+            </View>
+          </>
+        )}
         <View style={{ marginTop: 20 }}>
           <Cbutton
             {...props}
             loader={btnLoader}
             disabled={btnLoader}
-            buttonTitle={`Pay - ${currency_symbol[paymentData?.currency]}${
-              isChargeIncluded
-                ? PayObj?.charge_object?.charges_obj?.final_amount
-                : paymentData?.amount
-            }`}
+            buttonTitle={`Pay - ${
+              currency_symbol[paymentData?.currency]
+            }${finalAmount}`}
             onButtonClick={() => Validation()}
           />
         </View>

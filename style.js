@@ -24,18 +24,16 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modalHeader: {
-    flexDirection: "row",
-    height: 70,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     overflow: "hidden",
     paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "space-between",
+    paddingVertical: 14,
   },
   centerTitle: {
-    // flex: 1,
-    // justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   centerTitleText: {
     fontSize: 20,
@@ -45,7 +43,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#1D1D1D",
     opacity: 0.5,
-    marginTop: 4,
   },
   actionBtn: {
     justifyContent: "center",

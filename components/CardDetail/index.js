@@ -54,7 +54,7 @@ export default function CardDetail(props) {
     activeIndex,
     isShow,
     setisShow,
-    isChargeIncluded,
+    chargeData,
   } = props;
 
   const deviceHeight = Dimensions.get("screen").height;
@@ -86,8 +86,10 @@ export default function CardDetail(props) {
     (item) => item?.type === "bank" && !isEmpty(item?.charge_object)
   );
   const isOther = paymentMethod?.filter(
-    (item) => item?.type === "other" && !isEmpty(item?.charge_object)
+    (item) => item?.type === "digital wallet" && !isEmpty(item?.charge_object)
   );
+
+  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
 
   useEffect(() => {
     Platform.OS === "android" &&
@@ -99,6 +101,10 @@ export default function CardDetail(props) {
       setTimeout(() => {
         scrollToIndex();
       }, 100);
+    }
+
+    if (isEmpty(isShow?.toString())) {
+      setTabSelected({});
     }
   }, [isShow]);
 
@@ -118,9 +124,11 @@ export default function CardDetail(props) {
   }, [paymentMethod]);
 
   useEffect(() => {
-    (async function () {
-      setIsApplePaySupported(await isPlatformPaySupported());
-    })();
+    if (IOS) {
+      (async function () {
+        setIsApplePaySupported(await isPlatformPaySupported());
+      })();
+    }
   }, [isPlatformPaySupported]);
 
   useEffect(() => {
@@ -150,9 +158,9 @@ export default function CardDetail(props) {
       fetch(
         `${liveUrl}payment-options/${paymentData.country_code}?method=${
           method ? method : ""
-        }&mode=${paymentData?.mode}&amount=${paymentData?.amount}&currency=${
-          paymentData?.currency
-        }`,
+        }&mode=${paymentData?.mode}&amount=${
+          paymentData?.amount + amountToAdd
+        }&currency=${paymentData?.currency}`,
         {
           method: "GET",
           headers: {
@@ -200,9 +208,7 @@ export default function CardDetail(props) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? data?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        final_amount: data?.charge_object?.charges_obj?.final_amount,
       },
     };
 
@@ -296,10 +302,8 @@ export default function CardDetail(props) {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? subData?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        amount: paymentData?.amount + amountToAdd,
+        final_amount: subData?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: subData?.country_id,
         currency: paymentData?.currency,
@@ -310,6 +314,7 @@ export default function CardDetail(props) {
         gateway_code: subData?.charge_object?.gateway_code,
         gateway_id: subData?.gateway_id,
         email: paymentData?.email,
+        service_type: chargeData?.service_type,
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
@@ -317,10 +322,10 @@ export default function CardDetail(props) {
         JSON.stringify(data)
       );
       if (response?.status == false) {
-        Alert.alert(
-          "Error",
-          response?.message || "Please try again. Something got wrong."
-        );
+        setPaySuccess("fail", response?.message);
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 3000);
       } else {
         setTimeout(() => {
           if (type === "gPay") {
@@ -402,9 +407,10 @@ export default function CardDetail(props) {
         allowedCardAuthMethods,
       },
       transaction: {
-        totalPrice: isChargeIncluded
-          ? subData?.charge_object?.charges_obj?.final_amount?.toString()
-          : paymentData?.amount?.toString(),
+        totalPrice:
+          chargeData?.service_type === "inclusive"
+            ? (paymentData?.amount + amountToAdd)?.toString()
+            : subData?.charge_object?.charges_obj?.final_amount?.toString(),
         totalPriceStatus: "FINAL",
         currencyCode: paymentData?.currency,
       },
@@ -446,9 +452,10 @@ export default function CardDetail(props) {
         cartItems: [
           {
             label: "Total",
-            amount: isChargeIncluded
-              ? item?.charge_object?.charges_obj?.final_amount?.toString()
-              : paymentData?.amount?.toString(),
+            amount:
+              chargeData?.service_type === "inclusive"
+                ? (paymentData?.amount + amountToAdd)?.toString()
+                : item?.charge_object?.charges_obj?.final_amount?.toString(),
             paymentType: PlatformPay.PaymentType.Immediate,
           },
         ],
@@ -491,7 +498,7 @@ export default function CardDetail(props) {
                 styles.paymentBox,
                 {
                   borderColor:
-                    isHighlightIndex === index ? "#32CD32" : "#F8F8F8",
+                    isHighlightIndex === index ? "#3cd070" : "#F8F8F8",
                 },
               ]}
             >
@@ -563,24 +570,29 @@ export default function CardDetail(props) {
                     <Text style={styles.paymentMethodText}>
                       {item["payment_method.payment_method"]}
                     </Text>
-                    <Text style={styles.startAtText}>
-                      {`Starts @${
-                        Number(
-                          item?.charge_object?.charges_obj?.transaction_per || 0
-                        ) +
-                        Number(
-                          item?.charge_object?.charges_obj
-                            ?.currency_conversion_percentage || 0
-                        ) +
-                        Number(
-                          item?.charge_object?.charges_obj
-                            ?.international_charge_percentage || 0
-                        )
-                      }% fee`}{" "}
-                      {(item?.charge_object?.charges_obj?.fixed_fee_amount ||
-                        "") &&
-                        `+ TC`}
-                    </Text>
+                    {chargeData?.service_type !== "inclusive" && (
+                      <Text style={styles.startAtText}>
+                        {`Starts @${
+                          Number(
+                            item?.charge_object?.charges_obj?.transaction_per ||
+                              0
+                          ) +
+                          Number(
+                            item?.charge_object?.charges_obj
+                              ?.currency_conversion_percentage || 0
+                          ) +
+                          Number(
+                            item?.charge_object?.charges_obj
+                              ?.international_charge_percentage || 0
+                          )
+                        }% fee`}{" "}
+                        {item?.charge_object?.charges_obj?.fixed_fee_amount &&
+                          `+ ${currency_symbol[paymentData?.currency]}${
+                            item?.charge_object?.charges_obj
+                              ?.fixed_fee_amount || ""
+                          }`}
+                      </Text>
+                    )}
                   </View>
                 </TouchableOpacity>
               </Animated.View>
@@ -601,9 +613,9 @@ export default function CardDetail(props) {
             <ScrollView bounces={false}>
               {!isEmpty(isOther) && (
                 <>
-                  <Text style={styles.typeText}>Other Payment</Text>
+                  <Text style={styles.typeText}>Digital Wallets</Text>
                   <View style={styles.paymentBoxWrapper}>
-                    {renderFirstDisplay("other")}
+                    {renderFirstDisplay("digital wallet")}
                   </View>
                 </>
               )}
@@ -722,34 +734,37 @@ export default function CardDetail(props) {
                         >
                           {item["payment_method.payment_method"]}
                         </Text>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            textAlign: "center",
-                            paddingHorizontal: 2,
-                            color: isShow === index ? "#0068EF" : "#AAAAAA",
-                          }}
-                        >
-                          {`Starts @${
-                            Number(
-                              item?.charge_object?.charges_obj
-                                ?.transaction_per || 0
-                            ) +
-                            Number(
-                              item?.charge_object?.charges_obj
-                                ?.currency_conversion_percentage || 0
-                            ) +
-                            Number(
-                              item?.charge_object?.charges_obj
-                                ?.international_charge_percentage || 0
-                            )
-                          }% fee`}{" "}
-                          {item?.charge_object?.charges_obj?.fixed_fee_amount &&
-                            `+ ${currency_symbol[paymentData?.currency]}${
-                              item?.charge_object?.charges_obj
-                                ?.fixed_fee_amount || ""
-                            }`}
-                        </Text>
+                        {chargeData?.service_type !== "inclusive" && (
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              textAlign: "center",
+                              paddingHorizontal: 2,
+                              color: isShow === index ? "#0068EF" : "#AAAAAA",
+                            }}
+                          >
+                            {`Starts @${
+                              Number(
+                                item?.charge_object?.charges_obj
+                                  ?.transaction_per || 0
+                              ) +
+                              Number(
+                                item?.charge_object?.charges_obj
+                                  ?.currency_conversion_percentage || 0
+                              ) +
+                              Number(
+                                item?.charge_object?.charges_obj
+                                  ?.international_charge_percentage || 0
+                              )
+                            }% fee`}{" "}
+                            {item?.charge_object?.charges_obj
+                              ?.fixed_fee_amount &&
+                              `+ ${currency_symbol[paymentData?.currency]}${
+                                item?.charge_object?.charges_obj
+                                  ?.fixed_fee_amount || ""
+                              }`}
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     </Card>
                   </Animated.View>
@@ -797,6 +812,7 @@ export default function CardDetail(props) {
           }}
           tabs={paymentType}
           activeTab={tabSelected}
+          chargeData={chargeData}
           onTabChange={(currentTab) => {
             setTabSelected(currentTab);
             customCardRef?.current?.resetData();
@@ -853,8 +869,7 @@ export default function CardDetail(props) {
                         paddingHorizontal: 10,
                       }}
                       onPress={() => {
-                        // setTabSelected(item);
-                        scrollToIndex(1);
+                        setTabSelected(item);
                       }}
                     >
                       <View
@@ -936,6 +951,7 @@ export default function CardDetail(props) {
                 onPaymentDone={onPaymentDone}
                 setPaySuccess={setPaySuccess}
                 liveUrl={liveUrl}
+                chargeData={chargeData}
               />
             ) : showCustom === "url" ? (
               <View
@@ -1014,6 +1030,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
                 setShowCustom={setShowCustom}
                 onPaymentDone={onPaymentDone}
                 setPaySuccess={setPaySuccess}
+                chargeData={chargeData}
               />
             </ScrollView>
           </KeyboardAvoidingView>
@@ -1082,345 +1099,346 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
             renderItem={({ item, index }) => {
               const displayName = item?.gateway_name?.replaceAll("_", " ");
               return (
-                <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    style={{
-                      marginVertical: 8,
-                    }}
-                  >
-                    <View
+                index === 0 && (
+                  <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
+                    <TouchableOpacity
+                      activeOpacity={1}
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
+                        marginVertical: 8,
                       }}
                     >
-                      <Image
-                        source={{
-                          uri:
-                            item?.gateway_name === "stripe"
-                              ? "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png"
-                              : item?.gateway_name === "authorize_net"
-                              ? "https://upload.wikimedia.org/wikipedia/commons/1/16/Authorize.net_logo.png"
-                              : item?.gateway_name === "braintree"
-                              ? "https://www.appvizer.com/media/application/439/cover/987/cover-braintree"
-                              : item?.gateway_name === "paypal"
-                              ? "https://pngimg.com/uploads/paypal/paypal_PNG22.png"
-                              : item?.gateway_name === "razorpay"
-                              ? "https://assets.stickpng.com/images/62cc1dab150d5de9a3dad5fb.png"
-                              : "https://pngimg.com/uploads/paypal/paypal_PNG22.png",
-                        }}
-                        resizeMode="contain"
+                      <View
                         style={{
-                          height: 30,
-                          width: 40,
+                          flexDirection: "row",
+                          alignItems: "center",
                         }}
-                      />
+                      >
+                        <Image
+                          source={{
+                            uri:
+                              item?.gateway_name === "stripe"
+                                ? "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png"
+                                : item?.gateway_name === "authorize_net"
+                                ? "https://upload.wikimedia.org/wikipedia/commons/1/16/Authorize.net_logo.png"
+                                : item?.gateway_name === "braintree"
+                                ? "https://www.appvizer.com/media/application/439/cover/987/cover-braintree"
+                                : item?.gateway_name === "paypal"
+                                ? "https://pngimg.com/uploads/paypal/paypal_PNG22.png"
+                                : item?.gateway_name === "razorpay"
+                                ? "https://assets.stickpng.com/images/62cc1dab150d5de9a3dad5fb.png"
+                                : "https://pngimg.com/uploads/paypal/paypal_PNG22.png",
+                          }}
+                          resizeMode="contain"
+                          style={{
+                            height: 30,
+                            width: 40,
+                          }}
+                        />
 
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 16,
+                            color: "#000",
+                            fontWeight: "bold",
+                            textTransform: "capitalize",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {displayName}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 16,
-                          color: "#000",
-                          fontWeight: "bold",
-                          textTransform: "capitalize",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        {displayName}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Amount:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {paymentData?.amount}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        Amount:
-                      </Text>
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Transaction percentage:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {item?.transaction_per || "0"}%
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        {currency_symbol[paymentData?.currency]}
-                        {paymentData?.amount}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Transaction Amount:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {item?.transaction_amount || "0"}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        Transaction percentage:
-                      </Text>
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Fixed fee:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {item?.fixed_fee_amount || "0"}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        {item?.transaction_per || "0"}%
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          International Transaction percentage:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {item?.international_charge_percentage || "0"}%
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        Transaction Amount:
-                      </Text>
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          International Transaction amount:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {item?.international_charge_amount || "0"}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        {currency_symbol[paymentData?.currency]}
-                        {item?.transaction_amount || "0"}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Tax percentage:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {item?.tax_percentage_per || "0"}%
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        Fixed fee:
-                      </Text>
-                      <Text
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Tax amount:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#000",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {item?.tax_percentage_amount || "0"}
+                        </Text>
+                      </View>
+                      <View
                         style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 10,
+                          justifyContent: "space-between",
                         }}
-                        numberOfLines={2}
                       >
-                        {currency_symbol[paymentData?.currency]}
-                        {item?.fixed_fee_amount || "0"}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                        }}
-                        numberOfLines={2}
-                      >
-                        International Transaction percentage:
-                      </Text>
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {item?.international_charge_percentage || "0"}%
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                        }}
-                        numberOfLines={2}
-                      >
-                        International Transaction amount:
-                      </Text>
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {currency_symbol[paymentData?.currency]}
-                        {item?.international_charge_amount || "0"}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                        }}
-                        numberOfLines={2}
-                      >
-                        Tax percentage:
-                      </Text>
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {item?.tax_percentage_per || "0"}%
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                        }}
-                        numberOfLines={2}
-                      >
-                        Tax amount:
-                      </Text>
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#000",
-                          fontWeight: "bold",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {currency_symbol[paymentData?.currency]}
-                        {item?.tax_percentage_amount || "0"}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 10,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#0068EF",
-                        }}
-                        numberOfLines={2}
-                      >
-                        Final amount:
-                      </Text>
-                      <Text
-                        style={{
-                          marginHorizontal: 6,
-                          fontSize: 14,
-                          color: "#0068EF",
-                          fontWeight: "bold",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {currency_symbol[paymentData?.currency]}
-                        {item?.final_amount}
-                      </Text>
-                    </View>
-                    {index !== longPressData.length - 1 && (
-                      <Text
-                        ellipsizeMode="clip"
-                        numberOfLines={1}
-                        style={{ marginTop: 10, color: "#AAAAAA" }}
-                      >
-                        - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        - - - - - - - - - - - - - - - -
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </Animated.View>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#0068EF",
+                          }}
+                          numberOfLines={2}
+                        >
+                          Final amount:
+                        </Text>
+                        <Text
+                          style={{
+                            marginHorizontal: 6,
+                            fontSize: 14,
+                            color: "#0068EF",
+                            fontWeight: "bold",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {currency_symbol[paymentData?.currency]}
+                          {item?.final_amount}
+                        </Text>
+                      </View>
+                      {/* {index !== longPressData.length - 1 && (
+                        <Text
+                          ellipsizeMode="clip"
+                          numberOfLines={1}
+                          style={{marginTop: 10, color: '#AAAAAA'}}>
+                          - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                          - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                          - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                          - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                          - - - - - - - - - - - - - - - - - - - -
+                        </Text>
+                      )} */}
+                    </TouchableOpacity>
+                  </Animated.View>
+                )
               );
             }}
           />

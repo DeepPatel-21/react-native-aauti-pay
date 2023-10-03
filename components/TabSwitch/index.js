@@ -36,6 +36,7 @@ export default function TabSwitch(props) {
     onLongPress,
     isRTL = false,
     themeColor,
+    chargeData,
   } = props;
 
   const activeTabIndex = props.tabs.findIndex(
@@ -102,6 +103,7 @@ export default function TabSwitch(props) {
                 ],
                 backgroundColor: themeColor,
                 width: subTabSize,
+                height: chargeData?.service_type !== "inclusive" ? 68 : 48,
                 borderBottomWidth: 2,
                 borderBottomColor: "#0068EF",
               },
@@ -143,36 +145,40 @@ export default function TabSwitch(props) {
                 resizeMode="contain"
                 alt={obj["payment_sub_method.type"]}
               />
-              <Text
-                style={[
-                  styles.tabText,
-                  {
-                    fontWeight: "bold",
-                    color: "#000",
-                    marginBottom: 10,
-                  },
-                ]}
-              >
-                {`${
-                  Number(
-                    obj?.charge_object?.charges_obj?.transaction_per || 0
-                  ) +
-                  Number(
-                    obj?.charge_object?.charges_obj
-                      ?.currency_conversion_percentage || 0
-                  ) +
-                  Number(
-                    obj?.charge_object?.charges_obj
-                      ?.international_charge_percentage || 0
-                  )
-                }% fee`}{" "}
-                {obj?.charge_object?.charges_obj?.fixed_fee_amount &&
-                  `+ ${
-                    currency_symbol[
-                      obj?.charge_object?.charges_obj?.fixed_fee_currency
-                    ]
-                  }${obj?.charge_object?.charges_obj?.fixed_fee_amount || ""}`}
-              </Text>
+              {chargeData?.service_type !== "inclusive" && (
+                <Text
+                  style={[
+                    styles.tabText,
+                    {
+                      fontWeight: "bold",
+                      color: "#000",
+                      marginBottom: 10,
+                    },
+                  ]}
+                >
+                  {`${
+                    Number(
+                      obj?.charge_object?.charges_obj?.transaction_per || 0
+                    ) +
+                    Number(
+                      obj?.charge_object?.charges_obj
+                        ?.currency_conversion_percentage || 0
+                    ) +
+                    Number(
+                      obj?.charge_object?.charges_obj
+                        ?.international_charge_percentage || 0
+                    )
+                  }% fee`}{" "}
+                  {obj?.charge_object?.charges_obj?.fixed_fee_amount &&
+                    `+ ${
+                      currency_symbol[
+                        obj?.charge_object?.charges_obj?.fixed_fee_currency
+                      ]
+                    }${
+                      obj?.charge_object?.charges_obj?.fixed_fee_amount || ""
+                    }`}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>

@@ -30,7 +30,7 @@ import { currency_symbol } from "./components/staticData";
 import Cbutton from "./components/CButton";
 
 // this API call will give you which payment we have to do
-// const liveUrl = "https://staging.aautipay.com/plugin/";
+// const liveUrl = 'https://staging.aautipay.com/plugin/';
 // const liveUrl = 'http://192.168.0.126:3000/plugin/';
 const liveUrl = "https://dev.aautipay.com/plugin/";
 
@@ -80,6 +80,7 @@ const PaymentAgreegator = (props) => {
   const [activeIndex, setActiveIndex] = useState([]);
   const [pageLoade, setPageLoader] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState([]);
+  const [chargeData, setChargeData] = useState({});
   const [cardBrandSelect, setCardBrandSelect] = useState(null);
   const [isShow, setisShow] = useState("");
 
@@ -136,6 +137,33 @@ const PaymentAgreegator = (props) => {
     }
   }, [paySuccess]);
 
+  async function getServiceCharge() {
+    setPageLoader(true);
+
+    fetch(`${liveUrl}/get-service-charge/${paymentData?.app_token}`, {
+      method: "GET",
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.status) {
+          setChargeData(data?.data);
+          getPaymentOption(data?.data?.service_charge);
+        } else {
+          console.log("Charge not generated");
+          setPageLoader(false);
+        }
+        // Handle the response data here
+      })
+      .catch((error) => {
+        setPageLoader(false);
+
+        // Handle any errors here
+      });
+  }
+
   async function checkStripePayment(payInt) {
     const stripeSecretKey =
       "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
@@ -183,7 +211,7 @@ const PaymentAgreegator = (props) => {
         modalBool: true,
         urlLink: "",
       });
-      getPaymentOption();
+      getServiceCharge();
     }
 
     if (injectedMessage === "close") {
@@ -242,14 +270,15 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  const getPaymentOption = () => {
-    setPageLoader(true);
+  const getPaymentOption = (chargePer) => {
+    const amountToAdd = (chargePer * paymentData?.amount) / 100;
+
     try {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
         }?method=${""}&mode=${paymentData?.mode}&amount=${
-          paymentData?.amount
+          paymentData?.amount + amountToAdd
         }&currency=${paymentData?.currency}`,
         {
           method: "GET",
@@ -306,46 +335,48 @@ const PaymentAgreegator = (props) => {
                   currency_symbol[paymentData?.currency]
                 }${paymentData.amount?.toFixed(2)}`}
               </Text>
-              {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
-                <Text style={styles.moneyText}>Select payment source</Text>
-              ) : (
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setisShow("");
-                  }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginRight: 4,
-                  }}
-                >
-                  <MaterialIcons
-                    name="arrow-back"
-                    style={{ fontSize: 18, opacity: 0.5 }}
-                    color="#1D1D1D"
-                  />
-                  <Text style={[styles.moneyText, { marginTop: 0 }]}>
-                    Click here to go back
-                  </Text>
-                </TouchableOpacity>
+
+              {paySuccess !== "loading" && (
+                <View style={[styles.actionBtn, { alignItems: "center" }]}>
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => {
+                      setWebViewState({
+                        ...webViewState,
+                        modalBool: false,
+                        urlLink: "",
+                      });
+                    }}
+                  >
+                    <AntDesign name="closecircleo" size={24} color={"red"} />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
-            {paySuccess !== "loading" && (
-              <View style={[styles.actionBtn, { alignItems: "center" }]}>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={() => {
-                    setWebViewState({
-                      ...webViewState,
-                      modalBool: false,
-                      urlLink: "",
-                    });
-                  }}
-                >
-                  <AntDesign name="closecircleo" size={24} color={"red"} />
-                </TouchableOpacity>
-              </View>
+
+            {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
+              <Text style={[styles.moneyText, { marginTop: 4 }]}>
+                Select payment source
+              </Text>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setisShow("");
+                }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 4,
+                }}
+              >
+                <MaterialIcons
+                  name="arrow-back"
+                  style={{ fontSize: 18, opacity: 0.5 }}
+                  color="#1D1D1D"
+                />
+                <Text style={styles.moneyText}>Click here to go back</Text>
+              </TouchableOpacity>
             )}
           </View>
           <View
@@ -447,6 +478,7 @@ const PaymentAgreegator = (props) => {
                         webViewStyles={webViewStyles}
                         injectedMessage={injectedMessage}
                         activeIndex={activeIndex}
+                        chargeData={chargeData}
                         setPaySuccess={(type, message) => {
                           setPaySuccess(type);
                           setFailMessage(message);

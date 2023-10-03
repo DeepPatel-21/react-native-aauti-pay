@@ -37,7 +37,7 @@ function CustomCard(props, ref) {
     setPaySuccess,
     liveUrl,
     themeColor,
-    isChargeIncluded,
+    chargeData,
   } = props;
 
   const styles = StyleSheet.create({
@@ -71,6 +71,8 @@ function CustomCard(props, ref) {
   const [cardType, setCardType] = useState("visa-or-mastercard");
   const [BtnLoader, setBtnLoader] = useState(false);
 
+  const [isShowBreackdown, setIsShowBreackdown] = useState(false);
+
   const [cardList, setCardList] = useState([]);
   const [cusMainID, setCusID] = useState("");
   const [listLoader, setListLoader] = useState("");
@@ -81,6 +83,16 @@ function CustomCard(props, ref) {
     cvv: false,
     expire: false,
   });
+
+  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
+  const paymentGatwayFee =
+    cardBrandSelect?.charge_object?.charges_obj?.final_amount -
+    paymentData?.amount?.toFixed(2);
+
+  const finalAmount =
+    chargeData?.service_type === "inclusive"
+      ? paymentData?.amount + amountToAdd
+      : cardBrandSelect?.charge_object?.charges_obj?.final_amount;
 
   useEffect(() => {
     getCardList();
@@ -289,10 +301,8 @@ function CustomCard(props, ref) {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        amount: paymentData?.amount + amountToAdd,
+        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: cardBrandSelect?.country_id,
         currency: paymentData?.currency,
@@ -302,6 +312,7 @@ function CustomCard(props, ref) {
         transaction_code: paymentData?.transaction_code,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         gateway_id: cardBrandSelect?.gateway_id,
+        service_type: chargeData?.service_type,
         email: paymentData?.email,
       };
       const response = await getApiDataProgressPayment(
@@ -310,10 +321,10 @@ function CustomCard(props, ref) {
         JSON.stringify(data)
       );
       if (response?.status == false) {
-        Alert.alert(
-          "Error",
-          response?.message || "Please try again. Something got wrong."
-        );
+        setPaySuccess("fail", response?.message);
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 3000);
       } else {
         paymentApi(token, type, cusID, isNew, response?.code);
       }
@@ -326,9 +337,7 @@ function CustomCard(props, ref) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: isChargeIncluded
-          ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
-          : paymentData?.amount,
+        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
       },
       token,
     };
@@ -469,9 +478,17 @@ function CustomCard(props, ref) {
           );
         } else {
           console.log("Token not found in the XML.");
+          setPaySuccess("fail");
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 3000);
         }
       } else {
         console.error(response);
+        setPaySuccess("fail");
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 3000);
         setBtnLoader(false);
       }
     } catch (error) {
@@ -507,19 +524,26 @@ function CustomCard(props, ref) {
         body,
       });
 
+      const data = await response.text();
       if (response.ok) {
-        const data = await response.text();
         const tokenMatch = data.match(/<token>(.*?)<\/token>/);
 
         if (tokenMatch && tokenMatch[1]) {
           const tokenValue = tokenMatch[1];
           SaveOrder(tokenValue, "braintree", cusID, 1);
         } else {
-          console.log("Token not found in the XML.");
+          setPaySuccess("fail");
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 3000);
           setBtnLoader(false);
         }
       } else {
-        console.error(response);
+        const message = data.match(/<message>(.*?)<\/message>/);
+        setPaySuccess("fail", message && message[1]);
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 3000);
         setBtnLoader(false);
       }
     } catch (error) {
@@ -1156,6 +1180,7 @@ function CustomCard(props, ref) {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
+                marginTop: 4,
               }}
             >
               <Text
@@ -1163,23 +1188,21 @@ function CustomCard(props, ref) {
                   color: "red",
                 }}
               >
-                {`You have entered ${enteredCard} card, Please `}
-                <TouchableOpacity activeOpacity={0.7} onPress={() => {}}>
+                {`You have entered ${enteredCard} card, Please enter valid card.`}
+                {/* <TouchableOpacity activeOpacity={0.7} onPress={() => {}}>
                   <Text
                     style={{
-                      textDecorationLine: "underline",
-                      color: "#0068EF",
+                      textDecorationLine: 'underline',
+                      color: '#0068EF',
                       // marginTop: -4,
-                    }}
-                  >
+                    }}>
                     click here
                   </Text>
                 </TouchableOpacity>
                 <Text
                   style={{
-                    color: "red",
-                  }}
-                >{` to make payment by ${enteredCard} card`}</Text>
+                    color: 'red',
+                  }}>{` to make payment by ${enteredCard} card`}</Text> */}
               </Text>
             </View>
           )}
@@ -1247,16 +1270,161 @@ function CustomCard(props, ref) {
           <Icon name="shield-check" size={20} color={"#9D9D9D"} /> We are not
           storing any card details, So your data will be secure end to end.
         </Text>
+        <View
+          style={{
+            marginTop: 10,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+            Pricing Breackdown
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+          >
+            <MaterialIcons
+              name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+              size={40}
+              color={"#0068EF"}
+              style={{ marginEnd: -10 }}
+            />
+          </TouchableOpacity>
+        </View>
+        {isShowBreackdown && (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Amount:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {paymentData?.amount}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Platform fee:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {amountToAdd}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                }}
+                numberOfLines={2}
+              >
+                Payment gateway charges:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {chargeData?.service_type === "inclusive"
+                  ? 0
+                  : paymentGatwayFee}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 4,
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#0068EF",
+                }}
+                numberOfLines={2}
+              >
+                Final amount:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#0068EF",
+                  fontWeight: "bold",
+                }}
+                numberOfLines={2}
+              >
+                {currency_symbol[paymentData?.currency]}
+                {finalAmount}
+              </Text>
+            </View>
+          </>
+        )}
         <View style={{ marginTop: 20 }}>
           <Cbutton
             {...props}
             loader={BtnLoader}
             disabled={isDisable || BtnLoader}
-            buttonTitle={`Pay - ${currency_symbol[paymentData?.currency]}${
-              isChargeIncluded
-                ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
-                : paymentData?.amount
-            }`}
+            buttonTitle={`Pay - ${
+              currency_symbol[paymentData?.currency]
+            }${finalAmount}`}
             onButtonClick={() => {
               Alert.alert(
                 "",

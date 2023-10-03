@@ -17,7 +17,8 @@
 
 - [react-native-paper](https://www.npmjs.com/package/react-native-paper)
 - [react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn)
-- [@stripe/stripe-react-nativeÏ](https://www.npmjs.com/package/@stripe/stripe-react-native)
+- [react-native-reanimated](https://www.npmjs.com/package/react-native-reanimated)
+- [@stripe/stripe-react-native](https://www.npmjs.com/package/@stripe/stripe-react-native)
 
 ##### Enable Android Pay in your Manifest
 
