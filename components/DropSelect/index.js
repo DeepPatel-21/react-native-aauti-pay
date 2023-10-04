@@ -5,13 +5,13 @@ import {
   TextInput,
   FlatList,
   ScrollView,
-} from 'react-native';
-import React, {useEffect, useState} from 'react';
-import styles from './styles';
-import SChip from '../SChip';
-import Icon from 'react-native-vector-icons/Octicons';
-import {isEmpty} from 'lodash';
-import PropTypes from 'prop-types';
+} from "react-native";
+import React, { useEffect, useState } from "react";
+import styles from "./styles";
+import SChip from "../SChip";
+import Icon from "react-native-vector-icons/Octicons";
+import { isEmpty } from "lodash";
+import PropTypes from "prop-types";
 
 const DropSelect = ({
   Label,
@@ -43,10 +43,10 @@ const DropSelect = ({
     };
   }, [itemArray]);
 
-  const renderItem = ({item, index}) => {
+  const renderItem = ({ item, index }) => {
     let selectedID = -1;
     if (!isEmpty(value)) {
-      selectedID = value?.findIndex(obj => {
+      selectedID = value?.findIndex((obj) => {
         return obj?.name === item?.name;
       });
     }
@@ -58,12 +58,15 @@ const DropSelect = ({
           index !== 0 && {
             borderTopWidth: 1,
           },
+          dropStyle,
         ]}
         onPress={() =>
           multiSelect ? MultiSelection(item) : SingleSelection(item)
-        }>
+        }
+      >
         <Text
-          style={[styles.ItemText, selectedID !== -1 && styles.selectedText]}>
+          style={[styles.ItemText, selectedID !== -1 && styles.selectedText]}
+        >
           {item?.name}
         </Text>
         {selectedID !== -1 && (
@@ -73,15 +76,15 @@ const DropSelect = ({
     );
   };
 
-  const SingleSelection = Sitem => {
+  const SingleSelection = (Sitem) => {
     onSelect([Sitem]);
     setShow(false);
   };
 
-  const MultiSelection = Sitem => {
+  const MultiSelection = (Sitem) => {
     const NewArr = [...value];
 
-    const existedItem = value?.findIndex(item => {
+    const existedItem = value?.findIndex((item) => {
       return item?.name === Sitem?.name;
     });
 
@@ -93,9 +96,9 @@ const DropSelect = ({
     onSelect(NewArr);
   };
 
-  const onSearch = searchval => {
-    if (searchval !== '') {
-      let tempData = itemArray.filter(item => {
+  const onSearch = (searchval) => {
+    if (searchval !== "") {
+      let tempData = itemArray.filter((item) => {
         return item?.name.toLowerCase().indexOf(searchval.toLowerCase()) > -1;
       });
       setData(tempData);
@@ -103,9 +106,9 @@ const DropSelect = ({
       setData(itemArray);
     }
   };
-  const HandleCancel = canceledItem => {
+  const HandleCancel = (canceledItem) => {
     const tempArr = [...value];
-    const selectedID = value.findIndex(obj => {
+    const selectedID = value.findIndex((obj) => {
       return obj?.name === canceledItem?.name;
     });
     tempArr.splice(selectedID, 1);
@@ -113,7 +116,7 @@ const DropSelect = ({
   };
 
   return (
-    <View style={[styles.Main, dropStyle]}>
+    <View style={[styles.Main]}>
       {!isEmpty(Label) && (
         <View style={[styles.labelCon, LabelContainerStyle]}>
           <Text style={[styles.labelTxt, LabledTextStyle]}>{Label}&nbsp;</Text>
@@ -124,9 +127,10 @@ const DropSelect = ({
         style={[styles.DropDown, dropdownStyle]}
         onPress={() => {
           setShow(!show);
-          !show && onSearch('');
+          !show && onSearch("");
           onPress();
-        }}>
+        }}
+      >
         <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
           <View style={styles.ChipContainer}>
             {!isEmpty(value) ? (
@@ -134,12 +138,12 @@ const DropSelect = ({
                 return (
                   <SChip
                     key={item?.name + index}
-                    chipStyle={{marginRight: 10, marginVertical: 5}}
+                    chipStyle={{ marginRight: 10, marginVertical: 5 }}
                     text={item?.name}
-                    type={multiSelect ? 'primary' : 'text'}
+                    type={multiSelect ? "primary" : "text"}
                     cancelBtn={multiSelect ? true : false}
                     onCacelPress={() => HandleCancel(item)}
-                    TextStyle={{fontSize: 16}}
+                    TextStyle={{ fontSize: 16 }}
                   />
                 );
               })
@@ -152,9 +156,9 @@ const DropSelect = ({
         </ScrollView>
         <View style={styles.IconContainer}>
           {show ? (
-            <Icon name="chevron-up" size={23} color={'#AAAAAA'} />
+            <Icon name="chevron-up" size={23} color={"#AAAAAA"} />
           ) : (
-            <Icon name="chevron-down" size={23} color={'#AAAAAA'} />
+            <Icon name="chevron-down" size={23} color={"#AAAAAA"} />
           )}
         </View>
       </TouchableOpacity>
@@ -170,11 +174,11 @@ const DropSelect = ({
           {isSearch && (
             <TextInput
               style={styles.searchBox}
-              onChangeText={val => onSearch(val.trim())}
-              placeholder={'Search'}
+              onChangeText={(val) => onSearch(val.trim())}
+              placeholder={"Search"}
             />
           )}
-          {isEmpty(data) && <SChip type="text" text={'No Data'} />}
+          {isEmpty(data) && <SChip type="text" text={"No Data"} />}
           <FlatList
             keyExtractor={(item, index) => item?.name + index}
             showsVerticalScrollIndicator={false}
@@ -208,7 +212,7 @@ DropSelect.propTypes = {
 };
 
 DropSelect.defaultProps = {
-  Label: '',
+  Label: "",
   isRequired: false,
   multiSelect: false,
   LabledTextStyle: {},
@@ -217,8 +221,8 @@ DropSelect.defaultProps = {
   dropStyle: {},
   LabelContainerStyle: {},
   ErrState: false,
-  ErrMsg: '',
-  placeholder: 'Select...',
+  ErrMsg: "",
+  placeholder: "Select...",
   value: [],
   onSelect: () => {},
   onPress: () => {},

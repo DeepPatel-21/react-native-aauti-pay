@@ -89,7 +89,9 @@ export default function CardDetail(props) {
     (item) => item?.type === "digital wallet" && !isEmpty(item?.charge_object)
   );
 
-  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
+  const amountToAdd = Number(
+    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
+  );
 
   useEffect(() => {
     Platform.OS === "android" &&
@@ -164,6 +166,7 @@ export default function CardDetail(props) {
         {
           method: "GET",
           headers: {
+            Authorization: `Bearer ${chargeData?.auth_token}`,
             "Content-type": "application/json; charset=UTF-8",
           },
         }
@@ -228,7 +231,8 @@ export default function CardDetail(props) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}custom-checkout`,
         "POST",
-        JSON.stringify(Ddata)
+        JSON.stringify(Ddata),
+        chargeData?.auth_token
       );
       if (isUndefined(response) || response?.status === false) {
         setPaySuccess("fail", response?.message);
@@ -315,11 +319,14 @@ export default function CardDetail(props) {
         gateway_id: subData?.gateway_id,
         email: paymentData?.email,
         service_type: chargeData?.service_type,
+        base_amount: paymentData?.amount,
+        charge_id: subData?.charge_object?.charges_obj?.id,
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         setPaySuccess("fail", response?.message);
@@ -351,7 +358,8 @@ export default function CardDetail(props) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}pay-callback/${code}`,
         "POST",
-        type === "gPay" ? JSON.stringify(data) : {}
+        type === "gPay" ? JSON.stringify(data) : {},
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -661,6 +669,11 @@ export default function CardDetail(props) {
                         styles.paymentSmallBox,
                         {
                           width: SMALL_BOX_WIDTH,
+                          minHeight:
+                            deviceHeight *
+                            (chargeData?.service_type !== "inclusive"
+                              ? 0.14
+                              : 0.12),
                           borderColor: isShow === index ? "#0068EF" : "#F8F8F8",
                         },
                         index === paymentMethod?.length - 1 && {
@@ -813,6 +826,10 @@ export default function CardDetail(props) {
           tabs={paymentType}
           activeTab={tabSelected}
           chargeData={chargeData}
+          subTabSize={
+            deviceWidth *
+            (chargeData?.service_type !== "inclusive" ? 0.35 : 0.3)
+          }
           onTabChange={(currentTab) => {
             setTabSelected(currentTab);
             customCardRef?.current?.resetData();

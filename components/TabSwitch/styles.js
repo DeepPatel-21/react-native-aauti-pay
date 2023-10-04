@@ -16,7 +16,6 @@ export const styles = StyleSheet.create({
     left: 0,
     color: "#0068EF",
     alignItems: "center",
-    height: 68,
   },
   tab: {
     width: tabWidth,

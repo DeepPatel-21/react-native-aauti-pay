@@ -84,10 +84,13 @@ function CustomCard(props, ref) {
     expire: false,
   });
 
-  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
-  const paymentGatwayFee =
+  const amountToAdd = Number(
+    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
+  );
+  const paymentGatwayFee = (
     cardBrandSelect?.charge_object?.charges_obj?.final_amount -
-    paymentData?.amount?.toFixed(2);
+    (paymentData?.amount + amountToAdd)
+  )?.toFixed(2);
 
   const finalAmount =
     chargeData?.service_type === "inclusive"
@@ -314,11 +317,14 @@ function CustomCard(props, ref) {
         gateway_id: cardBrandSelect?.gateway_id,
         service_type: chargeData?.service_type,
         email: paymentData?.email,
+        base_amount: paymentData?.amount,
+        charge_id: cardBrandSelect?.charge_object?.charges_obj?.id,
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         setPaySuccess("fail", response?.message);
@@ -362,7 +368,8 @@ function CustomCard(props, ref) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}custom-checkout`,
         "POST",
-        JSON.stringify(Ddata)
+        JSON.stringify(Ddata),
+        chargeData?.auth_token
       );
 
       if (isUndefined(response) || response?.status === false) {
@@ -664,7 +671,8 @@ function CustomCard(props, ref) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}fetch-user-payment-tokens`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -754,7 +762,8 @@ function CustomCard(props, ref) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}pay-callback/${code}`,
         "POST",
-        {}
+        {},
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -796,7 +805,8 @@ function CustomCard(props, ref) {
       const response = await getApiDataProgressPayment(
         `${liveUrl}fetch-user-payment-tokens`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -1279,7 +1289,7 @@ function CustomCard(props, ref) {
           }}
         >
           <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-            Pricing Breackdown
+            Pricing Breakdown
           </Text>
           <TouchableOpacity
             activeOpacity={0.7}

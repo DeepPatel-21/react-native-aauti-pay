@@ -30,7 +30,6 @@ const DForm = (props) => {
     onPaymentDone,
     setPaySuccess,
     themeColor,
-    isChargeIncluded,
     chargeData,
   } = props;
   const [paymentObj, setPaymentObj] = useState({});
@@ -42,10 +41,13 @@ const DForm = (props) => {
   const [mainLoader, setMainLoader] = useState(false);
   const [isShowBreackdown, setIsShowBreackdown] = useState(false);
 
-  const amountToAdd = (chargeData?.service_charge * paymentData?.amount) / 100;
-  const paymentGatwayFee =
+  const amountToAdd = Number(
+    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
+  );
+  const paymentGatwayFee = (
     PayObj?.charge_object?.charges_obj?.final_amount -
-    paymentData?.amount?.toFixed(2);
+    (paymentData?.amount + amountToAdd)
+  )?.toFixed(2);
 
   const finalAmount =
     chargeData?.service_type === "inclusive"
@@ -120,18 +122,17 @@ const DForm = (props) => {
       return { name: it.trim() };
     });
     return (
-      <View style={{ marginTop: 8 }}>
-        <DropSelect
-          placeholder={`Select ${obj?.title}`}
-          itemArray={newV}
-          value={obj?.answer && [{ name: obj?.answer }]}
-          onSelect={(val) => {
-            changeValObj(val[0]?.name, key);
-          }}
-          ErrState={obj?.error}
-          dropdownStyle={{ borderColor: obj?.error ? "red" : "#9D9D9D" }}
-        />
-      </View>
+      <DropSelect
+        placeholder={`Select ${obj?.title}`}
+        itemArray={newV}
+        value={obj?.answer && [{ name: obj?.answer }]}
+        onSelect={(val) => {
+          changeValObj(val[0]?.name, key);
+        }}
+        ErrState={obj?.error}
+        dropdownStyle={{ borderColor: obj?.error ? "red" : "#9D9D9D" }}
+        dropStyle={{ backgroundColor: themeColor }}
+      />
     );
   };
 
@@ -210,11 +211,14 @@ const DForm = (props) => {
         gateway_id: PayObj?.gateway_id,
         service_type: chargeData?.service_type,
         email: paymentData?.email,
+        base_amount: paymentData?.amount,
+        charge_id: PayObj?.charge_object?.charges_obj?.id,
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         setPaySuccess("fail", response?.message);
@@ -265,7 +269,8 @@ const DForm = (props) => {
       const response = await getApiDataProgressPayment(
         `${liveUrl}custom-checkout`,
         "POST",
-        JSON.stringify(Ddata)
+        JSON.stringify(Ddata),
+        chargeData?.auth_token
       );
       if (isUndefined(response) || response?.status === false) {
         setPaySuccess("fail", response?.message);
@@ -545,7 +550,8 @@ const DForm = (props) => {
       const response = await getApiDataProgressPayment(
         `${liveUrl}fetch-user-payment-tokens`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -669,7 +675,7 @@ const DForm = (props) => {
           Object.keys(paymentObj)?.map((key, index) => {
             const item = paymentObj[key];
             return (
-              <View style={{ marginTop: 4 }} key={key}>
+              <View style={{ marginTop: 8 }} key={key}>
                 {item?.type === "dropdown"
                   ? myDrop(item, key)
                   : myInput(item, key)}
@@ -838,7 +844,7 @@ const DForm = (props) => {
             </View>
           </>
         )}
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginVertical: 20 }}>
           <Cbutton
             {...props}
             loader={btnLoader}

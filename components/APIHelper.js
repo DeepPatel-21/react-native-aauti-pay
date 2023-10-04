@@ -1,9 +1,14 @@
-import axios from 'axios';
+import axios from "axios";
 
-export const getApiDataProgressPayment = async (apiurl, method, data) => {
+export const getApiDataProgressPayment = async (
+  apiurl,
+  method,
+  data,
+  token
+) => {
   let authHeaders = {
-    'Content-Type': 'application/json',
-    authorization: '',
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   };
 
   try {
@@ -14,7 +19,7 @@ export const getApiDataProgressPayment = async (apiurl, method, data) => {
       headers: authHeaders,
       data: data || {},
     });
-    if (response?.data?.code == 'authentication_failed') {
+    if (response?.data?.code == "authentication_failed") {
       return;
     }
     let responseStatus = response.status;
@@ -39,12 +44,12 @@ export const getApiDataProgressPayment = async (apiurl, method, data) => {
       }
       if (
         error?.response?.data?.message ===
-        'Your request was made with invalid credentials.'
+        "Your request was made with invalid credentials."
       ) {
         return;
       }
       return returnObj;
     }
-    console.log('error----APIHelper--->', error);
+    console.log("error----APIHelper--->", error);
   }
 };

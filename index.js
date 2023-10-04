@@ -137,31 +137,42 @@ const PaymentAgreegator = (props) => {
     }
   }, [paySuccess]);
 
-  async function getServiceCharge() {
+  async function getAccessToken() {
     setPageLoader(true);
 
-    fetch(`${liveUrl}/get-service-charge/${paymentData?.app_token}`, {
-      method: "GET",
-      headers: {
-        "Content-type": "application/json; charset=UTF-8",
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data?.status) {
-          setChargeData(data?.data);
-          getPaymentOption(data?.data?.service_charge);
-        } else {
-          console.log("Charge not generated");
-          setPageLoader(false);
-        }
-        // Handle the response data here
-      })
-      .catch((error) => {
-        setPageLoader(false);
+    const data = {
+      app_token: paymentData?.app_token,
+    };
 
-        // Handle any errors here
-      });
+    try {
+      const response = await getApiDataProgressPayment(
+        `${liveUrl}login`,
+        "POST",
+        data,
+        chargeData?.auth_token
+      );
+      if (response?.status == false) {
+        Alert.alert(
+          "Error",
+          response?.message || "Please try again. Something got wrong."
+        );
+        setPageLoader(false);
+      } else {
+        const chargeData1 = {
+          service_type: response?.data?.userData?.service_type,
+          service_charge: response?.data?.userData?.service_charge,
+          auth_token: response?.data?.auth_token,
+        };
+        setChargeData(chargeData1);
+        getPaymentOption(
+          response?.data?.userData?.service_charge,
+          response?.data?.auth_token
+        );
+      }
+    } catch (error) {
+      setPageLoader(false);
+      console.log("error:", error);
+    }
   }
 
   async function checkStripePayment(payInt) {
@@ -211,7 +222,7 @@ const PaymentAgreegator = (props) => {
         modalBool: true,
         urlLink: "",
       });
-      getServiceCharge();
+      getAccessToken();
     }
 
     if (injectedMessage === "close") {
@@ -254,7 +265,8 @@ const PaymentAgreegator = (props) => {
       const response = await getApiDataProgressPayment(
         `${liveUrl}subscription-plan`,
         "POST",
-        JSON.stringify(data)
+        JSON.stringify(data),
+        chargeData?.auth_token
       );
       if (response?.status == false) {
         Alert.alert(
@@ -270,7 +282,7 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  const getPaymentOption = (chargePer) => {
+  const getPaymentOption = (chargePer, auth_token) => {
     const amountToAdd = (chargePer * paymentData?.amount) / 100;
 
     try {
@@ -283,6 +295,7 @@ const PaymentAgreegator = (props) => {
         {
           method: "GET",
           headers: {
+            Authorization: `Bearer ${auth_token}`,
             "Content-type": "application/json; charset=UTF-8",
           },
         }
@@ -382,7 +395,7 @@ const PaymentAgreegator = (props) => {
           <View
             style={[
               {
-                height: deviceHeight * 0.8,
+                height: deviceHeight * (IOS ? 0.8 : 0.76),
               },
               modalContainerStyles,
             ]}

@@ -59,11 +59,10 @@ export default function TabSwitch(props) {
     setspring(activeTabIndex);
   }, [activeTab]);
 
-  const renderTabData = () => {
-    return (
-      <View style={styles.container}>
-        {/* // <View style={styles.shadow} /> */}
-        {/* <LinearGradient
+  return (
+    <View style={styles.container}>
+      {/* // <View style={styles.shadow} /> */}
+      {/* <LinearGradient
           colors={[
             'rgba(0,0,0,0.09)',
             'rgba(0,0,0,0.07)',
@@ -81,108 +80,108 @@ export default function TabSwitch(props) {
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
         /> */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[
+          styles.wrapper,
+          {
+            width: tabSize,
+            backgroundColor: themeColor,
+          },
+        ]}
+      >
+        <Animated.View
           style={[
-            styles.wrapper,
+            styles.slider,
             {
-              width: tabSize,
+              transform: [
+                {
+                  translateX: translateValue,
+                },
+              ],
               backgroundColor: themeColor,
+              width: subTabSize,
+              height:
+                chargeData?.service_type !== "inclusive" ? 68 : IOS ? 48 : 44,
+              borderBottomWidth: 2,
+              borderBottomColor: "#0068EF",
             },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.slider,
-              {
-                transform: [
-                  {
-                    translateX: translateValue,
-                  },
-                ],
-                backgroundColor: themeColor,
-                width: subTabSize,
-                height: chargeData?.service_type !== "inclusive" ? 68 : 48,
-                borderBottomWidth: 2,
-                borderBottomColor: "#0068EF",
-              },
-            ]}
+          <AntDesign
+            name="caretdown"
+            color={"#0068EF"}
+            style={{
+              position: "absolute",
+              bottom: -8,
+              zIndex: 1,
+              fontSize: 10,
+            }}
+          />
+        </Animated.View>
+        {tabs.map((obj, index) => (
+          <TouchableOpacity
+            key={`${index + 1}`}
+            activeOpacity={0.8}
+            onPress={() => {
+              onTabChange(obj);
+            }}
+            onLongPress={() => {
+              onLongPress(obj?.charge_object?.longpress_data);
+            }}
+            style={{
+              ...styles.tab,
+              width: subTabSize,
+              paddingBottom: 2,
+            }}
           >
-            <AntDesign
-              name="caretdown"
-              color={"#0068EF"}
+            <Image
+              source={{ uri: obj["payment_sub_method.logo"] }}
               style={{
-                position: "absolute",
-                bottom: -8,
-                zIndex: 1,
-                fontSize: 10,
+                width: 60,
+                height: 40,
+                marginBottom: 6,
               }}
+              resizeMode="contain"
+              alt={obj["payment_sub_method.type"]}
             />
-          </Animated.View>
-          {tabs.map((obj, index) => (
-            <TouchableOpacity
-              key={`${index + 1}`}
-              activeOpacity={0.8}
-              onPress={() => {
-                onTabChange(obj);
-              }}
-              onLongPress={() => {
-                onLongPress(obj?.charge_object?.longpress_data);
-              }}
-              style={{
-                ...styles.tab,
-                width: subTabSize,
-              }}
-            >
-              <Image
-                source={{ uri: obj["payment_sub_method.logo"] }}
-                style={{
-                  width: 60,
-                  height: 40,
-                  marginBottom: 6,
-                }}
-                resizeMode="contain"
-                alt={obj["payment_sub_method.type"]}
-              />
-              {chargeData?.service_type !== "inclusive" && (
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      fontWeight: "bold",
-                      color: "#000",
-                      marginBottom: 10,
-                    },
-                  ]}
-                >
-                  {`${
-                    Number(
-                      obj?.charge_object?.charges_obj?.transaction_per || 0
-                    ) +
-                    Number(
-                      obj?.charge_object?.charges_obj
-                        ?.currency_conversion_percentage || 0
-                    ) +
-                    Number(
-                      obj?.charge_object?.charges_obj
-                        ?.international_charge_percentage || 0
-                    )
-                  }% fee`}{" "}
-                  {obj?.charge_object?.charges_obj?.fixed_fee_amount &&
-                    `+ ${
-                      currency_symbol[
-                        obj?.charge_object?.charges_obj?.fixed_fee_currency
-                      ]
-                    }${
-                      obj?.charge_object?.charges_obj?.fixed_fee_amount || ""
-                    }`}
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {/* <LinearGradient
+            {chargeData?.service_type !== "inclusive" && (
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    fontWeight: "bold",
+                    color: "#000",
+                    marginBottom: 10,
+                  },
+                ]}
+              >
+                {`${
+                  Number(
+                    obj?.charge_object?.charges_obj?.transaction_per || 0
+                  ) +
+                  Number(
+                    obj?.charge_object?.charges_obj
+                      ?.currency_conversion_percentage || 0
+                  ) +
+                  Number(
+                    obj?.charge_object?.charges_obj
+                      ?.international_charge_percentage || 0
+                  )
+                }% fee`}{" "}
+                {obj?.charge_object?.charges_obj?.fixed_fee_amount &&
+                  `+ ${
+                    currency_symbol[
+                      obj?.charge_object?.charges_obj?.fixed_fee_currency
+                    ]
+                  }${obj?.charge_object?.charges_obj?.fixed_fee_amount || ""}`}
+              </Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      {/* <LinearGradient
           colors={[
             'rgba(0,0,0,0.09)',
             'rgba(0,0,0,0.07)',
@@ -200,12 +199,9 @@ export default function TabSwitch(props) {
           start={{x: 1, y: 0}}
           end={{x: 0, y: 0}}
         /> */}
-        {/* // <View style={styles.shadow} /> */}
-      </View>
-    );
-  };
-
-  return renderTabData();
+      {/* // <View style={styles.shadow} /> */}
+    </View>
+  );
 }
 
 TabSwitch.propTypes = {
