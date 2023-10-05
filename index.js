@@ -101,14 +101,7 @@ const PaymentAgreegator = (props) => {
       const url = event.url;
       // Check if the URL contains the specified pattern
       if (url.includes("payment_intent")) {
-        var regex = /[?&]([^=#]+)=([^&#]*)/g,
-          params = {},
-          match;
-        while ((match = regex.exec(url))) {
-          params[match[1]] = match[2];
-        }
-
-        checkStripePayment(params?.payment_intent);
+        checkStripePayment(url);
       } else if (url.includes("success")) {
         console.log("Payment Done.");
 
@@ -175,16 +168,25 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  async function checkStripePayment(payInt) {
+  async function checkStripePayment(url) {
     const stripeSecretKey =
       "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
 
-    fetch(`https://api.stripe.com/v1/payment_intents/${payInt}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${stripeSecretKey}`,
-      },
-    })
+    var regex = /[?&]([^=#]+)=([^&#]*)/g,
+      params = {},
+      match;
+    while ((match = regex.exec(url))) {
+      params[match[1]] = match[2];
+    }
+    fetch(
+      `https://api.stripe.com/v1/payment_intents/${params?.payment_intent}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${stripeSecretKey}`,
+        },
+      }
+    )
       .then((response) => response.json())
       .then((data) => {
         if (data?.status == "succeeded") {

@@ -673,7 +673,7 @@ export default function CardDetail(props) {
               )}
             </ScrollView>
           ) : (
-            <>
+            <View style={{ paddingHorizontal: 10 }}>
               {hideArrow !== "top" && (
                 <>
                   <LinearGradient
@@ -711,6 +711,7 @@ export default function CardDetail(props) {
               <ScrollView
                 ref={horizontalScrollRef}
                 onScroll={handleScroll}
+                scrollEventThrottle={16}
                 horizontal={true}
                 showsHorizontalScrollIndicator={false}
               >
@@ -739,8 +740,8 @@ export default function CardDetail(props) {
                             borderColor:
                               isShow === index ? "#0068EF" : "#F8F8F8",
                           },
-                          index === paymentMethod?.length - 1 && {
-                            marginRight: 16,
+                          index === 0 && {
+                            marginLeft: 16,
                           },
                         ]}
                       >
@@ -883,7 +884,7 @@ export default function CardDetail(props) {
                   />
                 </>
               )}
-            </>
+            </View>
           )
         ) : (
           <View
