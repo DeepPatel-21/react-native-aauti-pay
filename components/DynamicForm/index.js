@@ -641,17 +641,26 @@ const DForm = (props) => {
                   {item?.last4.length > 4 ? item?.last4.slice(-4) : item?.last4}
                 </Text>
               </View>
-
-              {listLoader === index ? (
-                <ActivityIndicator
-                  style={{ marginRight: 4 }}
-                  size={"small"}
-                  animating
-                  color={"#0068EF"}
-                />
-              ) : (
-                <MaterialIcons name="arrow-right" size={36} color={"#0068EF"} />
-              )}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ fontSize: 16, color: "#000" }}>
+                  {currency_symbol[paymentData?.currency]}
+                  {finalAmount}
+                </Text>
+                {listLoader === index ? (
+                  <ActivityIndicator
+                    style={{ marginRight: 4 }}
+                    size={"small"}
+                    animating
+                    color={"#0068EF"}
+                  />
+                ) : (
+                  <MaterialIcons
+                    name="arrow-right"
+                    size={36}
+                    color={"#0068EF"}
+                  />
+                )}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -692,8 +701,8 @@ const DForm = (props) => {
             );
           })}
 
-        <Text style={{ color: "#9D9D9D", marginTop: 10, fontSize: 18 }}>
-          <Icon name="shield-check" size={20} color={"#9D9D9D"} /> We are not
+        <Text style={{ color: "#9D9D9D", marginTop: 10, fontSize: 14 }}>
+          <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
 

@@ -41,6 +41,7 @@ import {
 import { Card } from "react-native-paper";
 import { currency_symbol } from "../staticData";
 import RBSheet from "react-native-raw-bottom-sheet";
+import LinearGradient from "react-native-linear-gradient";
 
 export default function CardDetail(props) {
   const {
@@ -75,6 +76,8 @@ export default function CardDetail(props) {
   const [paymentType, setPaymentType] = useState([]);
   const [url, setURL] = useState("");
   const [isApplePaySupported, setIsApplePaySupported] = useState(false);
+
+  const [hideArrow, setHideArrow] = useState("top");
 
   const SMALL_BOX_WIDTH = 120;
   const IOS = Platform.OS === "ios";
@@ -609,6 +612,29 @@ export default function CardDetail(props) {
     });
   }
 
+  const handleScroll = (event) => {
+    setHideArrow("");
+
+    const { contentOffset } = event.nativeEvent;
+
+    if (contentOffset.x === 0) {
+      // ScrollView is at the top
+      // console.log('ScrollView is at the top');
+      setHideArrow("top");
+    }
+
+    // To check if ScrollView is at the bottom, you can compare with contentHeight
+    const contentHeight = event.nativeEvent.contentSize.width;
+    if (
+      contentOffset.x >=
+      contentHeight - event.nativeEvent.layoutMeasurement.width
+    ) {
+      // ScrollView is at the bottom
+      // console.log('ScrollView is at the bottom');
+      setHideArrow("bottom");
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <View
@@ -647,143 +673,217 @@ export default function CardDetail(props) {
               )}
             </ScrollView>
           ) : (
-            <ScrollView
-              ref={horizontalScrollRef}
-              horizontal={true}
-              showsHorizontalScrollIndicator={false}
-            >
-              {paymentMethod?.map((item, index) => {
-                return (Platform.OS === "android" &&
-                  item["payment_method.payment_method"] === "Apple Pay") ||
-                  (Platform.OS === "ios" &&
-                    item["payment_method.payment_method"] ===
-                      "Google Pay") ? null : (
-                  <Animated.View
-                    entering={FadeInRight}
-                    exiting={FadeOutLeft}
-                    key={item?.id}
-                    activeOpacity={0.8}
-                  >
-                    <Card
-                      style={[
-                        styles.paymentSmallBox,
-                        {
-                          width: SMALL_BOX_WIDTH,
-                          minHeight:
-                            deviceHeight *
-                            (chargeData?.service_type !== "inclusive"
-                              ? 0.14
-                              : 0.12),
-                          borderColor: isShow === index ? "#0068EF" : "#F8F8F8",
-                        },
-                        index === paymentMethod?.length - 1 && {
-                          marginRight: 16,
-                        },
-                      ]}
+            <>
+              {hideArrow !== "top" && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(0,0,0,0.09)",
+                      "rgba(0,0,0,0.07)",
+                      "rgba(0,0,0,0.05)",
+                      "rgba(0,0,0,0.03)",
+                      "rgba(0,0,0,0.01)",
+                    ]}
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      height: "100%",
+                      width: 10,
+                      zIndex: 1,
+                    }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  />
+                  <MaterialIcons
+                    name="keyboard-arrow-left"
+                    style={{
+                      position: "absolute",
+                      left: 6,
+                      top: "40%",
+                      height: "100%",
+                      // width: 10,
+                      zIndex: 4,
+                    }}
+                    size={20}
+                  />
+                </>
+              )}
+              <ScrollView
+                ref={horizontalScrollRef}
+                onScroll={handleScroll}
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+              >
+                {paymentMethod?.map((item, index) => {
+                  return (Platform.OS === "android" &&
+                    item["payment_method.payment_method"] === "Apple Pay") ||
+                    (Platform.OS === "ios" &&
+                      item["payment_method.payment_method"] ===
+                        "Google Pay") ? null : (
+                    <Animated.View
+                      entering={FadeInRight}
+                      exiting={FadeOutLeft}
+                      key={item?.id}
+                      activeOpacity={0.8}
                     >
-                      <TouchableOpacity
-                        onLongPress={() => {
-                          if (item["payment_method.payment_method"] === "ACH") {
-                            setLongPressData(
-                              item?.charge_object?.longpress_data
-                            );
-                            // bottomSheetRef?.current?.present();
-                            bottomSheetRef?.current?.open();
-                          }
-                        }}
-                        onPress={() => {
-                          setTabSelected({});
-                          setisShow(index);
-                          setShowCustom("");
-                          setCardBrandSelect(null);
-                          setPaymentType([]);
-                          if (
-                            paymentMethod[index][
-                              "payment_method.payment_method"
-                            ] === "UPI"
-                          ) {
-                            SaveOrder(paymentMethod[index], "saveO");
-                            setPaymentType([]);
-                          } else if (
-                            paymentMethod[index][
-                              "payment_method.payment_method"
-                            ] === "Apple Pay"
-                          ) {
-                            isApplePaySupported
-                              ? SaveOrder(paymentMethod[index], "aPay")
-                              : Alert.alert(
-                                  "",
-                                  "Apple Pay is not supported on this device."
-                                );
-                          } else if (
-                            paymentMethod[index][
-                              "payment_method.payment_method"
-                            ] === "Google Pay"
-                          ) {
-                            SaveOrder(paymentMethod[index], "gPay");
-                          } else {
-                            item["payment_method.payment_method"] === "ACH"
-                              ? getPaymentOption()
-                              : getPaymentOption(
-                                  paymentMethod[index]?.payment_method_id,
-                                  index
-                                );
-                          }
-                        }}
+                      <Card
+                        style={[
+                          styles.paymentSmallBox,
+                          {
+                            width: SMALL_BOX_WIDTH,
+                            minHeight:
+                              deviceHeight *
+                              (chargeData?.service_type !== "inclusive"
+                                ? 0.14
+                                : 0.12),
+                            borderColor:
+                              isShow === index ? "#0068EF" : "#F8F8F8",
+                          },
+                          index === paymentMethod?.length - 1 && {
+                            marginRight: 16,
+                          },
+                        ]}
                       >
-                        <Image
-                          source={{
-                            uri: item["payment_method.logo"],
+                        <TouchableOpacity
+                          onLongPress={() => {
+                            if (
+                              item["payment_method.payment_method"] === "ACH"
+                            ) {
+                              setLongPressData(
+                                item?.charge_object?.longpress_data
+                              );
+                              // bottomSheetRef?.current?.present();
+                              bottomSheetRef?.current?.open();
+                            }
                           }}
-                          style={styles.paymentSBImage}
-                          resizeMode="contain"
-                          alt={item["payment_method.payment_method"]}
-                        />
-                        <Text
-                          style={[
-                            styles.paymentSBTitle,
-                            { color: isShow === index ? "#0068EF" : "#000" },
-                          ]}
+                          onPress={() => {
+                            setTabSelected({});
+                            setisShow(index);
+                            setShowCustom("");
+                            setCardBrandSelect(null);
+                            setPaymentType([]);
+                            if (
+                              paymentMethod[index][
+                                "payment_method.payment_method"
+                              ] === "UPI"
+                            ) {
+                              SaveOrder(paymentMethod[index], "saveO");
+                              setPaymentType([]);
+                            } else if (
+                              paymentMethod[index][
+                                "payment_method.payment_method"
+                              ] === "Apple Pay"
+                            ) {
+                              isApplePaySupported
+                                ? SaveOrder(paymentMethod[index], "aPay")
+                                : Alert.alert(
+                                    "",
+                                    "Apple Pay is not supported on this device."
+                                  );
+                            } else if (
+                              paymentMethod[index][
+                                "payment_method.payment_method"
+                              ] === "Google Pay"
+                            ) {
+                              SaveOrder(paymentMethod[index], "gPay");
+                            } else {
+                              item["payment_method.payment_method"] === "ACH"
+                                ? getPaymentOption()
+                                : getPaymentOption(
+                                    paymentMethod[index]?.payment_method_id,
+                                    index
+                                  );
+                            }
+                          }}
                         >
-                          {item["payment_method.payment_method"]}
-                        </Text>
-                        {chargeData?.service_type !== "inclusive" && (
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              textAlign: "center",
-                              paddingHorizontal: 2,
-                              color: isShow === index ? "#0068EF" : "#AAAAAA",
+                          <Image
+                            source={{
+                              uri: item["payment_method.logo"],
                             }}
+                            style={styles.paymentSBImage}
+                            resizeMode="contain"
+                            alt={item["payment_method.payment_method"]}
+                          />
+                          <Text
+                            style={[
+                              styles.paymentSBTitle,
+                              { color: isShow === index ? "#0068EF" : "#000" },
+                            ]}
                           >
-                            {`Starts @${
-                              Number(
-                                item?.charge_object?.charges_obj
-                                  ?.transaction_per || 0
-                              ) +
-                              Number(
-                                item?.charge_object?.charges_obj
-                                  ?.currency_conversion_percentage || 0
-                              ) +
-                              Number(
-                                item?.charge_object?.charges_obj
-                                  ?.international_charge_percentage || 0
-                              )
-                            }% fee`}{" "}
-                            {item?.charge_object?.charges_obj
-                              ?.fixed_fee_amount &&
-                              `+ ${currency_symbol[paymentData?.currency]}${
-                                item?.charge_object?.charges_obj
-                                  ?.fixed_fee_amount || ""
-                              }`}
+                            {item["payment_method.payment_method"]}
                           </Text>
-                        )}
-                      </TouchableOpacity>
-                    </Card>
-                  </Animated.View>
-                );
-              })}
-            </ScrollView>
+                          {chargeData?.service_type !== "inclusive" && (
+                            <Text
+                              style={{
+                                fontSize: 11,
+                                textAlign: "center",
+                                paddingHorizontal: 2,
+                                color: isShow === index ? "#0068EF" : "#AAAAAA",
+                              }}
+                            >
+                              {`Starts @${
+                                Number(
+                                  item?.charge_object?.charges_obj
+                                    ?.transaction_per || 0
+                                ) +
+                                Number(
+                                  item?.charge_object?.charges_obj
+                                    ?.currency_conversion_percentage || 0
+                                ) +
+                                Number(
+                                  item?.charge_object?.charges_obj
+                                    ?.international_charge_percentage || 0
+                                )
+                              }% fee`}{" "}
+                              {item?.charge_object?.charges_obj
+                                ?.fixed_fee_amount &&
+                                `+ ${currency_symbol[paymentData?.currency]}${
+                                  item?.charge_object?.charges_obj
+                                    ?.fixed_fee_amount || ""
+                                }`}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </Card>
+                    </Animated.View>
+                  );
+                })}
+              </ScrollView>
+              {hideArrow !== "bottom" && (
+                <>
+                  <LinearGradient
+                    colors={[
+                      "rgba(0,0,0,0.09)",
+                      "rgba(0,0,0,0.07)",
+                      "rgba(0,0,0,0.05)",
+                      "rgba(0,0,0,0.03)",
+                      "rgba(0,0,0,0.01)",
+                    ]}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      height: "100%",
+                      width: 10,
+                      zIndex: 4,
+                    }}
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 0 }}
+                  />
+                  <MaterialIcons
+                    name="keyboard-arrow-right"
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "40%",
+                      height: "100%",
+                      // width: 10,
+                      zIndex: 4,
+                    }}
+                    size={20}
+                  />
+                </>
+              )}
+            </>
           )
         ) : (
           <View
