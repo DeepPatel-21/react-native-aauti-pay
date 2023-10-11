@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 import {
   View,
@@ -8,7 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BaseColors } from "../theme";
 import { cloneDeep, isArray, isEmpty, isObject, isUndefined } from "lodash";
 import CryptoJS from "react-native-crypto-js";
@@ -40,6 +41,13 @@ const DForm = (props) => {
   const [listLoader, setListLoader] = useState("");
   const [mainLoader, setMainLoader] = useState(false);
   const [isShowBreackdown, setIsShowBreackdown] = useState(false);
+  const Ref = useRef(null);
+
+  let bytes = CryptoJS.AES.decrypt(
+    PayObj?.extra_data,
+    "470cb677d807b1e0017c50b"
+  );
+  let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
 
   const amountToAdd = Number(
     ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
@@ -51,13 +59,40 @@ const DForm = (props) => {
 
   const finalAmount =
     chargeData?.service_type === "inclusive"
-      ? paymentData?.amount + amountToAdd
+      ? paymentData?.amount
       : PayObj?.charge_object?.charges_obj?.final_amount;
 
   useEffect(() => {
     getCardList();
     setPaymentObj(cloneDeep(PayObj?.ach_fields));
   }, []);
+
+  async function checkPaymentProgress(code) {
+    fetch(`${liveUrl}pay-response/${code}/${paymentData?.transaction_code}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${chargeData?.auth_token}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((response) => {
+        if (response?.data?.status == "success") {
+          setPaySuccess("success");
+          onPaymentDone();
+          clearInterval(Ref.current);
+        } else if (response?.data?.status == "failed") {
+          setPaySuccess("fail", response?.data?.fail_reason?.toString());
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 5000);
+          clearInterval(Ref.current);
+        }
+        // Handle the response data here
+      })
+      .catch((error) => {
+        // Handle any errors here
+      });
+  }
 
   const styles = StyleSheet.create({
     root: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -224,7 +259,7 @@ const DForm = (props) => {
         setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
       } else {
         paymentApi(bankData, isNew, cusID, response?.code);
       }
@@ -277,6 +312,11 @@ const DForm = (props) => {
         setTimeout(() => {
           setPaySuccess(false);
         }, 2000);
+      } else if (response?.status === "processing") {
+        const interval = setInterval(() => {
+          checkPaymentProgress(code);
+        }, 2000);
+        Ref.current = interval;
       } else {
         setPaySuccess("success");
         onPaymentDone();
@@ -292,8 +332,7 @@ const DForm = (props) => {
   const createTokenStripe = async () => {
     setPaySuccess("loading");
     setBtnLoader(true);
-    const stripeSecretKey =
-      "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
+    const stripeSecretKey = originalText?.private_key;
 
     const apiUrl = "https://api.stripe.com/v1/tokens";
 
@@ -375,7 +414,7 @@ const DForm = (props) => {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
           setBtnLoader(false);
         }
       })
@@ -383,7 +422,7 @@ const DForm = (props) => {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
         setBtnLoader(false);
       });
   };
@@ -405,8 +444,8 @@ const DForm = (props) => {
   async function getAuthorizeTrasId() {
     setPaySuccess("loading");
     setBtnLoader(true);
-    const API_LOGIN_ID = "6S8Pk6gQ4f";
-    const TRANSACTION_KEY = "4T9w3kx723gSVUF7";
+    const API_LOGIN_ID = originalText?.public_key;
+    const TRANSACTION_KEY = originalText?.private_key;
 
     // Set the API endpoint URL
     // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
@@ -477,8 +516,8 @@ const DForm = (props) => {
   async function createTokenAuthorize(cusID) {
     setPaySuccess("loading");
     setBtnLoader(true);
-    const API_LOGIN_ID = "6S8Pk6gQ4f";
-    const TRANSACTION_KEY = "4T9w3kx723gSVUF7";
+    const API_LOGIN_ID = originalText?.public_key;
+    const TRANSACTION_KEY = originalText?.private_key;
 
     // Set the API endpoint URL
     // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
@@ -601,7 +640,7 @@ const DForm = (props) => {
                 alignItems: "center",
                 paddingLeft: 6,
                 paddingVertical: 8,
-                // marginBottom: 10,
+                marginBottom: 10,
               }}
               onPress={() => {
                 Alert.alert(
@@ -705,31 +744,32 @@ const DForm = (props) => {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
-
-        <View
-          style={{
-            marginTop: 10,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-            Pricing Breackdown
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+        {chargeData?.service_type !== "inclusive" && (
+          <View
+            style={{
+              marginTop: 10,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            <MaterialIcons
-              name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
-              size={40}
-              color={"#0068EF"}
-              style={{ marginEnd: -10 }}
-            />
-          </TouchableOpacity>
-        </View>
-        {isShowBreackdown && (
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              Pricing Breackdown
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+            >
+              <MaterialIcons
+                name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+                size={40}
+                color={"#0068EF"}
+                style={{ marginEnd: -10 }}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+        {isShowBreackdown && chargeData?.service_type !== "inclusive" && (
           <>
             <View
               style={{
@@ -775,7 +815,7 @@ const DForm = (props) => {
                 }}
                 numberOfLines={2}
               >
-                Platform fee:
+                Platform Fee:
               </Text>
               <Text
                 style={{
@@ -805,7 +845,7 @@ const DForm = (props) => {
                 }}
                 numberOfLines={2}
               >
-                Payment gateway charges:
+                Payment Gateway Fee:
               </Text>
               <Text
                 style={{
@@ -816,9 +856,7 @@ const DForm = (props) => {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {chargeData?.service_type === "inclusive"
-                  ? 0
-                  : paymentGatwayFee}
+                {paymentGatwayFee}
               </Text>
             </View>
 
@@ -837,7 +875,7 @@ const DForm = (props) => {
                 }}
                 numberOfLines={2}
               >
-                Final amount:
+                Final Amount:
               </Text>
               <Text
                 style={{

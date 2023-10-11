@@ -1,9 +1,11 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 import { isArray, isEmpty, isUndefined } from "lodash";
 import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from "react";
 import {
@@ -40,6 +42,12 @@ function CustomCard(props, ref) {
     chargeData,
   } = props;
 
+  let bytes = CryptoJS.AES.decrypt(
+    cardBrandSelect?.extra_data,
+    "470cb677d807b1e0017c50b"
+  );
+  let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
+
   const styles = StyleSheet.create({
     root: { flex: 1, justifyContent: "center", alignItems: "center" },
     buttonContainer: {
@@ -63,6 +71,7 @@ function CustomCard(props, ref) {
       color: BaseColors.textColor,
     },
   });
+  const Ref = useRef(null);
 
   const [cardNumber, setCardNumber] = useState("");
   const [cvv, setCvv] = useState("");
@@ -94,7 +103,7 @@ function CustomCard(props, ref) {
 
   const finalAmount =
     chargeData?.service_type === "inclusive"
-      ? paymentData?.amount + amountToAdd
+      ? paymentData?.amount
       : cardBrandSelect?.charge_object?.charges_obj?.final_amount;
 
   useEffect(() => {
@@ -225,41 +234,10 @@ function CustomCard(props, ref) {
   };
 
   //stripe payment functions
-  const createCustomerStripe = async () => {
-    const stripeSecretKey =
-      "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
-
-    const apiUrl = "https://api.stripe.com/v1/customers";
-
-    const requestData = JSON.stringify({
-      email: paymentData?.email,
-      name: paymentData?.name,
-    });
-
-    const headers = {
-      Authorization: `Basic ${btoa(`${stripeSecretKey}:`)}`,
-    };
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: headers,
-        body: requestData,
-      });
-
-      const data = await response.json();
-      console.log(data);
-      !isEmpty(data) && createTokenStripe(data?.id);
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
   const createTokenStripe = async (cusID) => {
     setBtnLoader(true);
     setPaySuccess("loading");
-    const stripeSecretKey =
-      "pk_test_51Lp74WLvsFbqn13LVwHWLWuHOMzx3Jyn8dZSAVjGf9oIetpNOgvbbMMRjp5WRRheejXuSftYmD9uoebv2y0Rdm1h003RC3YCS6";
-
+    const stripeSecretKey = originalText?.private_key;
     const cardType1 = creditCardType.expirationDate(expDate);
 
     const cardData = {
@@ -281,7 +259,7 @@ function CustomCard(props, ref) {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
           throw new Error("Failed to create Stripe token");
         }
         return response.json();
@@ -295,7 +273,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
       });
   };
 
@@ -330,7 +308,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
       } else {
         paymentApi(token, type, cusID, isNew, response?.code);
       }
@@ -373,10 +351,15 @@ function CustomCard(props, ref) {
       );
 
       if (isUndefined(response) || response?.status === false) {
-        setPaySuccess("fail", response?.message);
+        setPaySuccess("fail", response?.message?.toString());
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
+      } else if (response?.status === "processing") {
+        const interval = setInterval(() => {
+          checkPaymentProgress(code);
+        }, 2000);
+        Ref.current = interval;
       } else {
         if (!isEmpty(response?.data?.url)) {
           const result = await InAppBrowser.open(response?.data?.url, {
@@ -412,7 +395,7 @@ function CustomCard(props, ref) {
             setPaySuccess("fail");
             setTimeout(() => {
               setPaySuccess(false);
-            }, 3000);
+            }, 5000);
           }
         } else {
           setPaySuccess("success");
@@ -428,20 +411,42 @@ function CustomCard(props, ref) {
     }
   }
 
+  async function checkPaymentProgress(code) {
+    fetch(`${liveUrl}pay-response/${code}/${paymentData?.transaction_code}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${chargeData?.auth_token}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((response) => {
+        if (response?.data?.status == "success") {
+          setPaySuccess("success");
+          onPaymentDone();
+          clearInterval(Ref.current);
+        } else if (response?.data?.status == "failed") {
+          setPaySuccess("fail", response?.data?.fail_reason?.toString());
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 5000);
+          clearInterval(Ref.current);
+        }
+        // Handle the response data here
+      })
+      .catch((error) => {
+        // Handle any errors here
+      });
+  }
+
   //Braintree payment functions
   const createCusIdBraintree = async () => {
     setBtnLoader(true);
     setPaySuccess("loading");
 
-    const clientId = "kndsxkkqt8v6c9bc";
-    const clientSecret = "1328556250992aae90c1bed2ebbd1df9";
+    const clientId = originalText?.public_key;
+    const clientSecret = originalText?.private_key;
 
     const credentials = `${clientId}:${clientSecret}`;
-    let bytes = CryptoJS.AES.decrypt(
-      cardBrandSelect?.extra_data,
-      "470cb677d807b1e0017c50b"
-    );
-    let originalText = bytes.toString(CryptoJS.enc.Utf8);
 
     const apiUrl = `https://api.sandbox.braintreegateway.com/merchants/${
       JSON.parse(originalText)?.gateway_merchantId
@@ -488,14 +493,14 @@ function CustomCard(props, ref) {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
         }
       } else {
         console.error(response);
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
         setBtnLoader(false);
       }
     } catch (error) {
@@ -542,7 +547,7 @@ function CustomCard(props, ref) {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
           setBtnLoader(false);
         }
       } else {
@@ -550,7 +555,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail", message && message[1]);
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
         setBtnLoader(false);
       }
     } catch (error) {
@@ -606,18 +611,29 @@ function CustomCard(props, ref) {
 
   //Paypal
   const makePaymentPaypal = async () => {
+    setPaySuccess("loading");
+
+    const cardType1 = creditCardType.expirationDate(expDate);
+    // get current year's first 2 digits
+    const currentYear = new Date().getFullYear();
+    const firstTwoDigits = currentYear.toString().slice(0, 2);
     try {
-      const clientId =
-        "ASMqCk8TqBOD0gFmuk7vtRbUZm-VtfKwlb6dmr0rVlRtCk-wZeCM4QR9iiGfNUml1DsorMkqbayZAs0l";
-      const clientSecret =
-        "ELOlsjkoxj8mjCHq6sqkanObut7vfzE1XCdzu4eBcZtjYEOoer4Dl7su_A_q6TvMANqY6a-GtHk3OLJ3";
+      const clientId = originalText?.public_key;
+      const clientSecret = originalText?.private_key;
       const payment_source = {
         payment_source: {
           card: {
-            number: "4111111111111111",
-            expiry: "2027-02",
-            cvv: "123",
-            name: "Firstname Lastname",
+            number: cardNumber.replaceAll(" ", ""),
+            expiry: `${firstTwoDigits}${cardType1?.year}-${cardType1?.month}`,
+            cvv: cvv,
+            name: paymentData?.name,
+            verification_method: "SCA_ALWAYS",
+            experience_context: {
+              brand_name: "Aautipay",
+              locale: "en-US",
+              return_url: `${liveUrl}redirect-3ds?val=success&type=paypal`,
+              cancel_url: `${liveUrl}redirect-3ds?val=fail&type=paypal`,
+            },
           },
         },
       };
@@ -634,21 +650,84 @@ function CustomCard(props, ref) {
           },
         }
       );
-
       const { access_token } = response.data;
 
       const cardTokenResponse = await axios.post(
-        "https://api-m.sandbox.paypal.com/v3/vault/payment-tokens",
+        "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens",
         payment_source,
         {
           headers: {
+            "Content-Type": "application/json",
+            "PayPal-Request-Id": generateRandomString(),
             Authorization: `Bearer ${access_token}`,
           },
         }
       );
 
-      console.log("Card Token:", cardTokenResponse.data.id);
+      if (
+        cardTokenResponse?.status === 200 ||
+        cardTokenResponse?.status === 201
+      ) {
+        const getUrlObj =
+          isArray(cardTokenResponse?.data?.links) &&
+          cardTokenResponse?.data?.links?.find((v) => v?.rel === "approve");
+
+        const result = await InAppBrowser.openAuth(getUrlObj?.href, "", {
+          // iOS Properties
+          dismissButtonStyle: "cancel",
+          preferredBarTintColor: "#000000",
+          preferredControlTintColor: "white",
+          readerMode: false,
+          animated: true,
+          modalPresentationStyle: "pageSheet",
+          modalTransitionStyle: "coverVertical",
+          modalEnabled: true,
+          enableBarCollapsing: true,
+          // Android Properties
+          showTitle: false,
+          toolbarColor: "#000000",
+          secondaryToolbarColor: "black",
+          navigationBarColor: "black",
+          navigationBarDividerColor: "white",
+          enableUrlBarHiding: true,
+          enableDefaultShare: true,
+          forceCloseOnRedirection: false,
+          // Specify full animation resource identifier(package:anim/name)
+          // or only resource name(in case of animation bundled with app).
+          animations: {
+            startEnter: "slide_in_right",
+            startExit: "slide_out_left",
+            endEnter: "slide_in_left",
+            endExit: "slide_out_right",
+          },
+        });
+
+        if (result?.type === "cancel") {
+          setPaySuccess("fail");
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 5000);
+        } else if (result?.type === "success") {
+          if (result?.url?.includes("success")) {
+            SaveOrder(cardTokenResponse?.data?.id, "paypal", "", 1);
+          } else {
+            setPaySuccess("fail");
+            setTimeout(() => {
+              setPaySuccess(false);
+            }, 5000);
+          }
+        }
+      } else {
+        setPaySuccess("fail");
+        setTimeout(() => {
+          setPaySuccess(false);
+        }, 5000);
+      }
     } catch (error) {
+      setPaySuccess("fail");
+      setTimeout(() => {
+        setPaySuccess(false);
+      }, 5000);
       console.log("Error:", error.response.data);
     }
   };
@@ -683,7 +762,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
       } else {
         createTokenAdyen(response);
       }
@@ -744,7 +823,7 @@ function CustomCard(props, ref) {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
           setBtnLoader(false);
         }
       })
@@ -752,7 +831,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
         setBtnLoader(false);
       });
   };
@@ -773,7 +852,7 @@ function CustomCard(props, ref) {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
         setBtnLoader(false);
       } else {
         setPaySuccess("success");
@@ -783,7 +862,7 @@ function CustomCard(props, ref) {
       setPaySuccess("fail");
       setTimeout(() => {
         setPaySuccess(false);
-      }, 3000);
+      }, 5000);
       setBtnLoader(false);
       console.log("error:", error);
     }
@@ -847,8 +926,8 @@ function CustomCard(props, ref) {
     setBtnLoader(true);
     setPaySuccess("loading");
 
-    const API_LOGIN_ID = "6S8Pk6gQ4f";
-    const TRANSACTION_KEY = "4T9w3kx723gSVUF7";
+    const API_LOGIN_ID = originalText?.public_key;
+    const TRANSACTION_KEY = originalText?.private_key;
     const cardType1 = creditCardType.expirationDate(expDate);
 
     // Set the API endpoint URL
@@ -916,8 +995,8 @@ function CustomCard(props, ref) {
   }
 
   async function createCustomerPayId(customerID) {
-    const API_LOGIN_ID = "6S8Pk6gQ4f";
-    const TRANSACTION_KEY = "4T9w3kx723gSVUF7";
+    const API_LOGIN_ID = originalText?.public_key;
+    const TRANSACTION_KEY = originalText?.private_key;
     const cardType1 = creditCardType.expirationDate(expDate);
 
     // Set the API endpoint URL
@@ -1290,30 +1369,32 @@ function CustomCard(props, ref) {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any card details, So your data will be secure end to end.
         </Text>
-        <View
-          style={{
-            marginTop: 10,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-            Pricing Breakdown
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+        {chargeData?.service_type !== "inclusive" && (
+          <View
+            style={{
+              marginTop: 10,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            <MaterialIcons
-              name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
-              size={40}
-              color={"#0068EF"}
-              style={{ marginEnd: -10 }}
-            />
-          </TouchableOpacity>
-        </View>
-        {isShowBreackdown && (
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              Pricing Breakdown
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsShowBreackdown(!isShowBreackdown)}
+            >
+              <MaterialIcons
+                name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+                size={40}
+                color={"#0068EF"}
+                style={{ marginEnd: -10 }}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+        {isShowBreackdown && chargeData?.service_type !== "inclusive" && (
           <>
             <View
               style={{
@@ -1359,7 +1440,7 @@ function CustomCard(props, ref) {
                 }}
                 numberOfLines={2}
               >
-                Platform fee:
+                Platform Fee:
               </Text>
               <Text
                 style={{
@@ -1389,7 +1470,7 @@ function CustomCard(props, ref) {
                 }}
                 numberOfLines={2}
               >
-                Payment gateway charges:
+                Payment Gateway Fee:
               </Text>
               <Text
                 style={{
@@ -1400,9 +1481,7 @@ function CustomCard(props, ref) {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {chargeData?.service_type === "inclusive"
-                  ? 0
-                  : paymentGatwayFee}
+                {paymentGatwayFee}
               </Text>
             </View>
 
@@ -1421,7 +1500,7 @@ function CustomCard(props, ref) {
                 }}
                 numberOfLines={2}
               >
-                Final amount:
+                Final Amount:
               </Text>
               <Text
                 style={{
@@ -1479,6 +1558,11 @@ function CustomCard(props, ref) {
                             ?.gateway_name === "authorize_net"
                         ) {
                           getAuthorizeTrasId();
+                        } else if (
+                          cardBrandSelect?.charge_object?.charges_obj
+                            ?.gateway_name === "paypal"
+                        ) {
+                          makePaymentPaypal();
                         }
                       }
                     },

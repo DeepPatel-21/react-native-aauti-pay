@@ -195,7 +195,7 @@ export default function TabSwitch(props) {
               onTabChange(obj);
             }}
             onLongPress={() => {
-              onLongPress(obj?.charge_object?.longpress_data);
+              onLongPress(obj?.charge_object?.charges_obj);
             }}
             style={{
               ...styles.tab,

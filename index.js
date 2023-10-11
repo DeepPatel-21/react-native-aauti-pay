@@ -28,10 +28,16 @@ import CardDetail from "./components/CardDetail";
 import PaySuccess from "./components/PaySuccessPage";
 import { currency_symbol } from "./components/staticData";
 import Cbutton from "./components/CButton";
+import {
+  PlatformPay,
+  StripeProvider,
+  confirmPlatformPayPayment,
+} from "@stripe/stripe-react-native";
 
 // this API call will give you which payment we have to do
 // const liveUrl = 'https://staging.aautipay.com/plugin/';
 // const liveUrl = 'http://192.168.0.126:3000/plugin/';
+// const liveUrl = 'http://192.168.0.125:3000/plugin/';
 const liveUrl = "https://dev.aautipay.com/plugin/";
 
 const PaymentAgreegator = (props) => {
@@ -49,7 +55,7 @@ const PaymentAgreegator = (props) => {
     webViewStyles = {},
     injectedMessage = "",
     onModalClose = () => {},
-    isChargeIncluded = true,
+    isPlateformfeeIncluded = false,
 
     //Main button
     buttonTitle = "Aauti Pay",
@@ -104,7 +110,6 @@ const PaymentAgreegator = (props) => {
         checkStripePayment(url);
       } else if (url.includes("success")) {
         console.log("Payment Done.");
-
         setPaySuccess("success");
         onPaymentDone();
         // Close the InAppBrowser
@@ -112,7 +117,7 @@ const PaymentAgreegator = (props) => {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 3000);
+        }, 5000);
       }
       InAppBrowser.close();
     };
@@ -159,7 +164,8 @@ const PaymentAgreegator = (props) => {
         setChargeData(chargeData1);
         getPaymentOption(
           response?.data?.userData?.service_charge,
-          response?.data?.auth_token
+          response?.data?.auth_token,
+          response?.data?.userData?.service_type
         );
       }
     } catch (error) {
@@ -196,7 +202,7 @@ const PaymentAgreegator = (props) => {
           setPaySuccess("fail");
           setTimeout(() => {
             setPaySuccess(false);
-          }, 3000);
+          }, 5000);
         }
         // Handle the response data here
       })
@@ -284,7 +290,7 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  const getPaymentOption = (chargePer, auth_token) => {
+  const getPaymentOption = (chargePer, auth_token, service_type) => {
     const amountToAdd = (chargePer * paymentData?.amount) / 100;
 
     try {
@@ -292,7 +298,9 @@ const PaymentAgreegator = (props) => {
         `${liveUrl}payment-options/${
           paymentData.country_code
         }?method=${""}&mode=${paymentData?.mode}&amount=${
-          paymentData?.amount + amountToAdd
+          service_type === "inclusive"
+            ? paymentData?.amount
+            : paymentData?.amount + amountToAdd
         }&currency=${paymentData?.currency}`,
         {
           method: "GET",
@@ -329,185 +337,193 @@ const PaymentAgreegator = (props) => {
   };
 
   return (
-    <View style={styles.root}>
-      <Cbutton {...props} />
-      <Modal
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        transparent={true}
-        statusBarTranslucent
-        visible={webViewState.modalBool}
-        onRequestClose={() => {
-          setWebViewState({ ...webViewState, modalBool: false, urlLink: "" });
-        }}
-      >
-        <View style={styles.modalWrapper}>
-          <View style={[styles.modalHeader, { backgroundColor: themeColor }]}>
-            {/* Close container for modal */}
-            <View style={styles.centerTitle}>
-              <Text style={[styles.centerTitleText, { color: "#1D1D1D" }]}>
-                {`Make Payment of ${
-                  currency_symbol[paymentData?.currency]
-                }${paymentData.amount?.toFixed(2)}`}
-              </Text>
+    <StripeProvider
+      publishableKey="pk_test_51Lp74WLvsFbqn13LVwHWLWuHOMzx3Jyn8dZSAVjGf9oIetpNOgvbbMMRjp5WRRheejXuSftYmD9uoebv2y0Rdm1h003RC3YCS6"
+      merchantIdentifier="com.app.saayamdemo"
+    >
+      <View style={styles.root}>
+        <Cbutton {...props} />
+        <Modal
+          animationType="slide"
+          presentationStyle="overFullScreen"
+          transparent={true}
+          statusBarTranslucent
+          visible={webViewState.modalBool}
+          onRequestClose={() => {
+            setWebViewState({ ...webViewState, modalBool: false, urlLink: "" });
+          }}
+        >
+          <View style={styles.modalWrapper}>
+            <View style={[styles.modalHeader, { backgroundColor: themeColor }]}>
+              {/* Close container for modal */}
+              <View style={styles.centerTitle}>
+                <Text style={[styles.centerTitleText, { color: "#1D1D1D" }]}>
+                  {`Make Payment of ${
+                    currency_symbol[paymentData?.currency]
+                  }${paymentData.amount?.toFixed(2)}`}
+                </Text>
 
-              {paySuccess !== "loading" && (
-                <View style={[styles.actionBtn, { alignItems: "center" }]}>
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={() => {
-                      setWebViewState({
-                        ...webViewState,
-                        modalBool: false,
-                        urlLink: "",
-                      });
-                    }}
-                  >
-                    <AntDesign name="closecircleo" size={24} color={"red"} />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
-              <Text style={[styles.moneyText, { marginTop: 4 }]}>
-                Select payment source
-              </Text>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  setisShow("");
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 4,
-                }}
-              >
-                <MaterialIcons
-                  name="arrow-back"
-                  style={{ fontSize: 18, opacity: 0.5 }}
-                  color="#1D1D1D"
-                />
-                <Text style={styles.moneyText}>Click here to go back</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <View
-            style={[
-              {
-                height: deviceHeight * (IOS ? 0.8 : 0.76),
-              },
-              modalContainerStyles,
-            ]}
-          >
-            <KeyboardAvoidingView behavior="padding">
-              <View
-                style={{
-                  height: "100%",
-                  width: "100%",
-                  backgroundColor: themeColor,
-                }}
-              >
-                {/* <CardDetails /> */}
-                {paySuccess ? (
-                  <PaySuccess responseType={paySuccess} message={failMessage} />
-                ) : (
-                  <>
-                    {pageLoade ? (
-                      <View
-                        style={{
-                          height: "100%",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <ActivityIndicator
-                          size={"large"}
-                          animating
-                          color={"#0068EF"}
-                        />
-                      </View>
-                    ) : isEmpty(PaymentType) ||
-                      PaymentType === "subscription" ||
-                      (PaymentType !== "one_time" &&
-                        PaymentType !== "custom_subscription") ? (
-                      <View
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          height: 400,
-                          justifyContent: "center",
-                          marginTop: 20,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 20,
-                            textAlign: "center",
-                          }}
-                        >
-                          {PaymentType === "subscription"
-                            ? "Coming Soon ......."
-                            : "Invalid Payment Type"}
-                        </Text>
-                        <MaterialIcons
-                          name={"error"}
-                          size={50}
-                          style={{ marginTop: 10 }}
-                          color="red"
-                        />
-                        <View
-                          style={{
-                            width: "100%",
-                            paddingHorizontal: 20,
-                          }}
-                        >
-                          <Cbutton
-                            {...props}
-                            buttonTitle="Ok"
-                            onButtonClick={() => {
-                              setWebViewState({
-                                ...webViewState,
-                                modalBool: false,
-                                urlLink: "",
-                              });
-                            }}
-                          />
-                        </View>
-                      </View>
-                    ) : viewState === "sublist" ? (
-                      <SubList subscriptionData={subscriptionData} />
-                    ) : viewState === "custom" ? (
-                      <CustomSub paymentData={paymentData} />
-                    ) : viewState === "cardDetail" ? (
-                      <CardDetail
-                        {...props}
-                        isShow={isShow}
-                        setisShow={(v) => {
-                          setisShow(v);
-                        }}
-                        onPaymentDone={onPaymentDone}
-                        paymentMethod={paymentMethod}
-                        liveUrl={liveUrl}
-                        webViewStyles={webViewStyles}
-                        injectedMessage={injectedMessage}
-                        activeIndex={activeIndex}
-                        chargeData={chargeData}
-                        setPaySuccess={(type, message) => {
-                          setPaySuccess(type);
-                          setFailMessage(message);
-                        }}
-                      />
-                    ) : null}
-                  </>
+                {paySuccess !== "loading" && (
+                  <View style={[styles.actionBtn, { alignItems: "center" }]}>
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => {
+                        setWebViewState({
+                          ...webViewState,
+                          modalBool: false,
+                          urlLink: "",
+                        });
+                      }}
+                    >
+                      <AntDesign name="closecircleo" size={24} color={"red"} />
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
-            </KeyboardAvoidingView>
+              {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
+                <Text style={[styles.moneyText, { marginTop: 4 }]}>
+                  Select payment source
+                </Text>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setisShow("");
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 4,
+                    width: 200,
+                  }}
+                >
+                  <MaterialIcons
+                    name="arrow-back"
+                    style={{ fontSize: 18, opacity: 0.5 }}
+                    color="#1D1D1D"
+                  />
+                  <Text style={styles.moneyText}>Click here to go back</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View
+              style={[
+                {
+                  height: deviceHeight * (IOS ? 0.8 : 0.76),
+                },
+                modalContainerStyles,
+              ]}
+            >
+              <KeyboardAvoidingView behavior="padding">
+                <View
+                  style={{
+                    height: "100%",
+                    width: "100%",
+                    backgroundColor: themeColor,
+                  }}
+                >
+                  {/* <CardDetails /> */}
+                  {paySuccess ? (
+                    <PaySuccess
+                      responseType={paySuccess}
+                      message={failMessage}
+                    />
+                  ) : (
+                    <>
+                      {pageLoade ? (
+                        <View
+                          style={{
+                            height: "100%",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <ActivityIndicator
+                            size={"large"}
+                            animating
+                            color={"#0068EF"}
+                          />
+                        </View>
+                      ) : isEmpty(PaymentType) ||
+                        PaymentType === "subscription" ||
+                        (PaymentType !== "one_time" &&
+                          PaymentType !== "custom_subscription") ? (
+                        <View
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: 400,
+                            justifyContent: "center",
+                            marginTop: 20,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 20,
+                              textAlign: "center",
+                            }}
+                          >
+                            {PaymentType === "subscription"
+                              ? "Coming Soon ......."
+                              : "Invalid Payment Type"}
+                          </Text>
+                          <MaterialIcons
+                            name={"error"}
+                            size={50}
+                            style={{ marginTop: 10 }}
+                            color="red"
+                          />
+                          <View
+                            style={{
+                              width: "100%",
+                              paddingHorizontal: 20,
+                            }}
+                          >
+                            <Cbutton
+                              {...props}
+                              buttonTitle="Ok"
+                              onButtonClick={() => {
+                                setWebViewState({
+                                  ...webViewState,
+                                  modalBool: false,
+                                  urlLink: "",
+                                });
+                              }}
+                            />
+                          </View>
+                        </View>
+                      ) : viewState === "sublist" ? (
+                        <SubList subscriptionData={subscriptionData} />
+                      ) : viewState === "custom" ? (
+                        <CustomSub paymentData={paymentData} />
+                      ) : viewState === "cardDetail" ? (
+                        <CardDetail
+                          {...props}
+                          isShow={isShow}
+                          setisShow={(v) => {
+                            setisShow(v);
+                          }}
+                          onPaymentDone={onPaymentDone}
+                          paymentMethod={paymentMethod}
+                          liveUrl={liveUrl}
+                          webViewStyles={webViewStyles}
+                          injectedMessage={injectedMessage}
+                          activeIndex={activeIndex}
+                          chargeData={chargeData}
+                          setPaySuccess={(type, message) => {
+                            setPaySuccess(type);
+                            setFailMessage(message);
+                          }}
+                        />
+                      ) : null}
+                    </>
+                  )}
+                </View>
+              </KeyboardAvoidingView>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </StripeProvider>
   );
 };
 
@@ -519,7 +535,7 @@ PaymentAgreegator.propTypes = {
   loader: PropTypes.bool,
   mainButtonContainerStyle: PropTypes.object,
   themeColor: PropTypes.string,
-  isChargeIncluded: PropTypes.bool,
+  isPlateformfeeIncluded: PropTypes.bool,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -530,7 +546,7 @@ PaymentAgreegator.defaultProps = {
   loader: false,
   mainButtonContainerStyle: {},
   themeColor: "#F5F9FF",
-  isChargeIncluded: true,
+  isPlateformfeeIncluded: false,
 };
 
 export default PaymentAgreegator;

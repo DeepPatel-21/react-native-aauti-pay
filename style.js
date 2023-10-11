@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
     backgroundColor: "#00000020",
-    height: deviceHeight * 0.8 + 45,
+    // height: deviceHeight * 0.8 + 45,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -26,9 +26,10 @@ const styles = StyleSheet.create({
   modalHeader: {
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
-    overflow: "hidden",
+    // overflow: 'hidden',
     paddingHorizontal: 20,
     paddingVertical: 14,
+    height: 80,
   },
   centerTitle: {
     flexDirection: "row",
