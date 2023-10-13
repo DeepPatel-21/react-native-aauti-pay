@@ -448,9 +448,7 @@ function CustomCard(props, ref) {
 
     const credentials = `${clientId}:${clientSecret}`;
 
-    const apiUrl = `https://api.sandbox.braintreegateway.com/merchants/${
-      JSON.parse(originalText)?.gateway_merchantId
-    }/customers`;
+    const apiUrl = `https://api.sandbox.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`;
     const encodedApiKey = btoa(credentials);
     const headers = {
       Authorization: `Basic ${encodedApiKey}`,
@@ -485,7 +483,7 @@ function CustomCard(props, ref) {
           const tokenValue = tokenMatch[1];
           createTokenbraintree(
             tokenValue,
-            JSON.parse(originalText)?.gateway_merchantId,
+            originalText?.gateway_merchantId,
             headers
           );
         } else {

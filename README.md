@@ -7,17 +7,15 @@
 ![](https://img.shields.io/badge/os-android-green) ![](https://img.shields.io/badge/os-iOS-blue)
 
 # Installation
-
 `npm install react-native-aauti-pay`
 `yarn add react-native-aauti-pay`
-
 ### Manual installation
 
 ##### You need to manually installed below plugins.
-
 - [react-native-paper](https://www.npmjs.com/package/react-native-paper)
 - [react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn)
 - [react-native-reanimated](https://www.npmjs.com/package/react-native-reanimated)
+- [react-native-google-pay](https://www.npmjs.com/package/react-native-google-pay)
 - [@stripe/stripe-react-native](https://www.npmjs.com/package/@stripe/stripe-react-native)
 
 ##### Enable Android Pay in your Manifest
@@ -29,9 +27,7 @@ To enable Google Pay in your app, you need to add the following Google Pay API m
     android:name="com.google.android.gms.wallet.api.enabled"
     android:value="true" />
 ```
-
 Please go through once with [react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn?activeTab=readme) documentation
-
 ##### Authentication Flow using Deep Linking
 
 For Deep linking integration you can checkout [Deep Linking](https://reactnavigation.org/docs/deep-linking/) documentation
@@ -39,7 +35,6 @@ For Deep linking integration you can checkout [Deep Linking](https://reactnaviga
 In order to redirect back to your application from a web browser, you must specify a unique URI to your app. To do this, add below code to your `AndroidManifest` file.
 
 - Enable deep linking (Android) - AndroidManifest.xml
-
 ```
 <activity
   ...
@@ -48,20 +43,19 @@ In order to redirect back to your application from a web browser, you must speci
       <action android:name="android.intent.action.VIEW" />
       <category android:name="android.intent.category.DEFAULT" />
       <category android:name="android.intent.category.BROWSABLE" />
-      <data android:scheme="aauti-pay" android:host="app" />
+      <data android:scheme="intent" android:host="aauti-pay" />
   </intent-filter>
 </activity>
 ```
 
 - Enable deep linking (iOS) - Info.plist
-
 ```
 <key>CFBundleURLTypes</key>
 <array>
   <dict>
     <key>CFBundleURLSchemes</key>
     <array>
-      <string>aauti-pay</string>
+      <string>intent</string>
     </array>
   </dict>
 </array>
@@ -111,24 +105,24 @@ Parameters you can use in this is below:
 
 For close icons we have to use react-native-vector-icons/AntDesign only.
 
-| Param Name               | Type     | Default Value                                                                                                                                                                                                                                                    | Required | Description                                                                                                                                            |
-| ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PaymentType              | String   | ''                                                                                                                                                                                                                                                               | Yes      | For Payment Type for ex: one_time => one time payment, subscription => for subscription plan                                                           |
-| paymentData              | Object   | { name: ‘Name of the payer', email: Email of the payer, amount: Amount to be paid, country_code: country code, app_token: 'unique app token', currency: "short code of your currency", transactionId: "Unique transaction id for payment", mode: "live or test"} | Yes      | Pass data in this format for payment process                                                                                                           |
-| isChargeIncluded         | Boolean  | true                                                                                                                                                                                                                                                             | No       | If this is false no gateway charge will be included in amount from aauti payment gateway                                                               |
-| onPaymentDone            | Function | () => {}                                                                                                                                                                                                                                                         | Yes      | When you done payment this function will trigger and you get response back in this function                                                            |
-| modalContainerStyles     | Object   | {}                                                                                                                                                                                                                                                               | No       | Modal container styles                                                                                                                                 |
-| webViewStyles            | Object   | {}                                                                                                                                                                                                                                                               | No       | Webview container styles                                                                                                                               |
-| injectedMessage          | String   | Empty string                                                                                                                                                                                                                                                     | Yes      | it is for closing the modal via webhook calls                                                                                                          |
-| onModalClose             | Function | () => {}                                                                                                                                                                                                                                                         | No       | Closing the modal when state changes                                                                                                                   |
-| buttonTitle              | String   | Aauti Pay                                                                                                                                                                                                                                                        | No       | Button Title                                                                                                                                           |
-| onButtonClick            | Function | () => {}                                                                                                                                                                                                                                                         | Yes      | If you want to something to be happen on this button click                                                                                             |
-| buttonTextStyle          | Object   | {}                                                                                                                                                                                                                                                               | No       | Button text styles                                                                                                                                     |
-| mainButtonContainerStyle | Object   | {}                                                                                                                                                                                                                                                               | No       | Main Button container styles                                                                                                                           |
-| loaderColor              | String   | white                                                                                                                                                                                                                                                            | No       | Loader color                                                                                                                                           |
-| loader                   | Boolean  | false                                                                                                                                                                                                                                                            | No       | Main button loader                                                                                                                                     |
-| isGradientButton         | Boolean  | false                                                                                                                                                                                                                                                            | No       | If you want gradient or multicolor button than you have to pass `true`                                                                                 |
-| linearColorsName         | Array    | [ "red", "pink" ]                                                                                                                                                                                                                                                | No       | If you have enable `isGradientButton` and you want to change colors than you have to pass particular color name default is red. Like [ "red", "pink" ] |
-| startPosition            | Object   | { x: 0, y: 0.5 }                                                                                                                                                                                                                                                 | No       | Start position                                                                                                                                         |
-| endPosition              | Object   | { x: 1, y: 0.5 }                                                                                                                                                                                                                                                 | No       | End position                                                                                                                                           |
-| themeColor               | String   | '#F5F9FF'                                                                                                                                                                                                                                                        | No       | Theme color for whole plugin (Note:- Please add light color of your App theme color)                                                                   |
+| Param Name               | Type     | Default Value                                                                                                                                                                                                                         | Required | Description                                                                                                                                            |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PaymentType              | String   | '' | Yes      | For Payment Type for ex: one_time => one time payment, subscription => for subscription plan |
+| paymentData              | Object   | { name: ‘Name of the payer', email: Email of the payer, amount: Amount to be paid, country_code: country code, app_token: 'unique app token', currency: "short code of your currency", transactionId: "Unique transaction id for payment", mode: "live or test"} | Yes      | Pass data in this format for payment process |
+| isChargeIncluded                   | Boolean  | true | No       | If this is false no gateway charge will be included in amount from aauti payment gateway |
+| onPaymentDone            | Function | () => {} | Yes      | When you done payment this function will trigger and you get response back in this function |
+| modalContainerStyles     | Object   | {} | No       | Modal container styles |
+| webViewStyles            | Object   | {} | No       | Webview container styles |
+| injectedMessage          | String   | Empty string | Yes      | it is for closing the modal via webhook calls |
+| onModalClose             | Function | () => {} | No       | Closing the modal when state changes |
+| buttonTitle              | String   | Aauti Pay | No       | Button Title |
+| onButtonClick            | Function | () => {} | Yes      | If you want to something to be happen on this button click |
+| buttonTextStyle          | Object   | {} | No       | Button text styles |
+| mainButtonContainerStyle | Object   | {} | No       | Main Button container styles |
+| loaderColor              | String   | white | No       | Loader color |
+| loader                   | Boolean  | false | No       | Main button loader |
+| isGradientButton         | Boolean  | false | No       | If you want gradient or multicolor button than you have to pass `true` |
+| linearColorsName         | Array    | [ "red", "pink" ] | No       | If you have enable `isGradientButton` and you want to change colors than you have to pass particular color name default is red. Like [ "red", "pink" ] |
+| startPosition            | Object   | { x: 0, y: 0.5 } | No       | Start position |
+| endPosition              | Object   | { x: 1, y: 0.5 } | No       | End position |
+|themeColor | String | '#F5F9FF' | No | Theme color for whole plugin (Note:- Please add light color of your App theme color) |
