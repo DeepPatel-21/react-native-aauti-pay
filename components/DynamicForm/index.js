@@ -405,7 +405,12 @@ const DForm = (props) => {
       body: raw,
     };
 
-    fetch("https://checkout-test.adyen.com/v70/payments", requestOptions)
+    fetch(
+      paymentData?.mode === "test"
+        ? "https://checkout-test.adyen.com/v70/payments"
+        : "https://checkout-live.adyen.com/v70/payments",
+      requestOptions
+    )
       .then((response) => response.json())
       .then((result) => {
         if (result?.resultCode === "Authorised") {
@@ -448,8 +453,10 @@ const DForm = (props) => {
     const TRANSACTION_KEY = originalText?.private_key;
 
     // Set the API endpoint URL
-    // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
-    const API_URL = "https://apitest.authorize.net/xml/v1/request.api";
+    const API_URL =
+      paymentData?.mode === "test"
+        ? "https://apitest.authorize.net/xml/v1/request.api"
+        : "https://api.authorize.net/xml/v1/request.api";
 
     const requestData = `
     <?xml version="1.0" encoding="UTF-8"?>
@@ -520,8 +527,10 @@ const DForm = (props) => {
     const TRANSACTION_KEY = originalText?.private_key;
 
     // Set the API endpoint URL
-    // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
-    const API_URL = "https://apitest.authorize.net/xml/v1/request.api";
+    const API_URL =
+      paymentData?.mode === "test"
+        ? "https://apitest.authorize.net/xml/v1/request.api"
+        : "https://api.authorize.net/xml/v1/request.api";
 
     const requestData = `
     <?xml version="1.0" encoding="UTF-8"?>

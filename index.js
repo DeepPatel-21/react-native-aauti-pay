@@ -56,6 +56,7 @@ const PaymentAgreegator = (props) => {
     injectedMessage = "",
     onModalClose = () => {},
     isPlateformfeeIncluded = false,
+    merchantIdentifier = "com.app.saayamdemo",
 
     //Main button
     buttonTitle = "Aauti Pay",
@@ -339,7 +340,7 @@ const PaymentAgreegator = (props) => {
   return (
     <StripeProvider
       publishableKey="pk_test_51Lp74WLvsFbqn13LVwHWLWuHOMzx3Jyn8dZSAVjGf9oIetpNOgvbbMMRjp5WRRheejXuSftYmD9uoebv2y0Rdm1h003RC3YCS6"
-      merchantIdentifier="com.app.saayamdemo"
+      merchantIdentifier={`merchant.${merchantIdentifier}`}
     >
       <View style={styles.root}>
         <Cbutton {...props} />
@@ -536,6 +537,7 @@ PaymentAgreegator.propTypes = {
   mainButtonContainerStyle: PropTypes.object,
   themeColor: PropTypes.string,
   isPlateformfeeIncluded: PropTypes.bool,
+  merchantIdentifier: PropTypes.string,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -547,6 +549,7 @@ PaymentAgreegator.defaultProps = {
   mainButtonContainerStyle: {},
   themeColor: "#F5F9FF",
   isPlateformfeeIncluded: false,
+  merchantIdentifier: "com.app.saayamdemo",
 };
 
 export default PaymentAgreegator;

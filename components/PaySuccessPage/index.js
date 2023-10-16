@@ -59,7 +59,7 @@ const PaySuccess = ({ responseType, message }) => {
           }}
         >
           {isLoading
-            ? "Please wait, Verifying payment status..."
+            ? "Please wait, This process might take some time. Please do not hit back button or close app."
             : paySuccessFull
             ? "Your payment has been successful!"
             : message || "Any amount deducted will be refunded within 7 days"}

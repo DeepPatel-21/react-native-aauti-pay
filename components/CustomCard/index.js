@@ -448,7 +448,10 @@ function CustomCard(props, ref) {
 
     const credentials = `${clientId}:${clientSecret}`;
 
-    const apiUrl = `https://api.sandbox.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`;
+    const apiUrl =
+      paymentData?.mode === "test"
+        ? `https://api.sandbox.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`
+        : `https://api.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`;
     const encodedApiKey = btoa(credentials);
     const headers = {
       Authorization: `Basic ${encodedApiKey}`,
@@ -512,7 +515,10 @@ function CustomCard(props, ref) {
   };
 
   const createTokenbraintree = async (cusID, merID, headers) => {
-    const apiUrl = `https://api.sandbox.braintreegateway.com/merchants/${merID}/payment_methods`;
+    const apiUrl =
+      paymentData?.mode === "test"
+        ? `https://api.sandbox.braintreegateway.com/merchants/${merID}/payment_methods`
+        : `https://api.braintreegateway.com/merchants/${merID}/payment_methods`;
 
     const cardType1 = creditCardType.expirationDate(expDate);
     // get current year's first 2 digits
@@ -639,7 +645,9 @@ function CustomCard(props, ref) {
       const credentialsBase64 = btoa(credentials);
 
       const response = await axios.post(
-        "https://api.sandbox.paypal.com/v1/oauth2/token",
+        paymentData?.mode === "test"
+          ? "https://api.sandbox.paypal.com/v1/oauth2/token"
+          : "https://api.paypal.com/v1/oauth2/token",
         "grant_type=client_credentials",
         {
           headers: {
@@ -651,7 +659,9 @@ function CustomCard(props, ref) {
       const { access_token } = response.data;
 
       const cardTokenResponse = await axios.post(
-        "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens",
+        paymentData?.mode === "test"
+          ? "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens"
+          : "https://api-m.paypal.com/v3/vault/setup-tokens",
         payment_source,
         {
           headers: {
@@ -812,7 +822,12 @@ function CustomCard(props, ref) {
       body: raw,
     };
 
-    fetch("https://checkout-test.adyen.com/v70/payments", requestOptions)
+    fetch(
+      paymentData?.mode === "test"
+        ? "https://checkout-test.adyen.com/v70/payments"
+        : "https://checkout-live.adyen.com/v70/payments",
+      requestOptions
+    )
       .then((response) => response.json())
       .then((result) => {
         if (result?.resultCode === "Authorised") {
@@ -929,8 +944,10 @@ function CustomCard(props, ref) {
     const cardType1 = creditCardType.expirationDate(expDate);
 
     // Set the API endpoint URL
-    // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
-    const API_URL = "https://apitest.authorize.net/xml/v1/request.api";
+    const API_URL =
+      paymentData?.mode === "test"
+        ? "https://apitest.authorize.net/xml/v1/request.api"
+        : "https://api.authorize.net/xml/v1/request.api";
 
     // get current year's first 2 digits
     const currentYear = new Date().getFullYear();
@@ -998,8 +1015,10 @@ function CustomCard(props, ref) {
     const cardType1 = creditCardType.expirationDate(expDate);
 
     // Set the API endpoint URL
-    // const API_URL = 'https://api.authorize.net/xml/v1/request.api';
-    const API_URL = "https://apitest.authorize.net/xml/v1/request.api";
+    const API_URL =
+      paymentData?.mode === "test"
+        ? "https://apitest.authorize.net/xml/v1/request.api"
+        : "https://api.authorize.net/xml/v1/request.api";
 
     // get current year's first 2 digits
     const currentYear = new Date().getFullYear();

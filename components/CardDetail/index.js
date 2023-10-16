@@ -419,6 +419,11 @@ export default function CardDetail(props) {
   const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
 
   const googlePayCall = (code, subData) => {
+    let bytes = CryptoJS.AES.decrypt(
+      subData?.extra_data,
+      "470cb677d807b1e0017c50b"
+    );
+    let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
     const requestData = {
       cardPaymentMethod: {
         tokenizationSpecification:
@@ -433,8 +438,7 @@ export default function CardDetail(props) {
                 gateway: "stripe",
                 gatewayMerchantId: "",
                 stripe: {
-                  publishableKey:
-                    "pk_test_51Lp74WLvsFbqn13LVwHWLWuHOMzx3Jyn8dZSAVjGf9oIetpNOgvbbMMRjp5WRRheejXuSftYmD9uoebv2y0Rdm1h003RC3YCS6",
+                  publishableKey: originalText?.private_key,
                   version: "2018-11-08",
                 },
               },
