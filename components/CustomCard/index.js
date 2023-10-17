@@ -1517,7 +1517,7 @@ function CustomCard(props, ref) {
             {...props}
             loader={BtnLoader}
             disabled={isDisable || BtnLoader}
-            buttonTitle={`Pay - ${
+            buttonTitle={`Pay ${
               currency_symbol[paymentData?.currency]
             }${finalAmount}`}
             onButtonClick={() => {

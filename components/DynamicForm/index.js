@@ -884,7 +884,7 @@ const DForm = (props) => {
             {...props}
             loader={btnLoader}
             disabled={btnLoader}
-            buttonTitle={`Pay - ${
+            buttonTitle={`Pay ${
               currency_symbol[paymentData?.currency]
             }${finalAmount}`}
             onButtonClick={() => Validation()}
