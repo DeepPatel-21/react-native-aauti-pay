@@ -43,6 +43,7 @@ import { Card } from "react-native-paper";
 import { currency_symbol } from "../staticData";
 import RBSheet from "react-native-raw-bottom-sheet";
 import LinearGradient from "react-native-linear-gradient";
+import { sendErrorReason } from "../ApiCall";
 
 export default function CardDetail(props) {
   const {
@@ -93,10 +94,6 @@ export default function CardDetail(props) {
   );
   const isOther = paymentMethod?.filter(
     (item) => item?.type === "digital wallet" && !isEmpty(item?.charge_object)
-  );
-
-  const amountToAdd = Number(
-    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
   );
 
   useEffect(() => {
@@ -164,10 +161,8 @@ export default function CardDetail(props) {
       fetch(
         `${liveUrl}payment-options/${paymentData.country_code}?method=${
           method ? method : ""
-        }&mode=${paymentData?.mode}&amount=${
-          chargeData?.service_type === "inclusive"
-            ? paymentData?.amount
-            : paymentData?.amount + amountToAdd
+        }&mode=${chargeData?.mode}&amount=${
+          chargeData?.withChargeAmount
         }&currency=${paymentData?.currency}`,
         {
           method: "GET",
@@ -333,19 +328,21 @@ export default function CardDetail(props) {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount + amountToAdd,
+        amount: chargeData?.withChargeAmount,
         final_amount: subData?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: subData?.country_id,
         currency: paymentData?.currency,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: subData?.payment_method_id,
         payment_sub_method_id: subData?.payment_sub_method_id,
         transaction_code: paymentData?.transaction_code,
         gateway_code: subData?.charge_object?.gateway_code,
         gateway_id: subData?.gateway_id,
         email: paymentData?.email,
-        service_type: chargeData?.service_type,
+        payment_gateway_fee: chargeData?.isPaymentGateWay
+          ? "exclusive"
+          : "inclusive",
         base_amount: paymentData?.amount,
         charge_id: subData?.charge_object?.charges_obj?.id,
       };
@@ -400,7 +397,7 @@ export default function CardDetail(props) {
         }, 2000);
       } else {
         if (type === "aPay") {
-          applePay(subData, response?.data?.client_secret);
+          applePay(subData, response?.data?.client_secret, code);
         } else {
           setPaySuccess("success");
           onPaymentDone();
@@ -446,10 +443,9 @@ export default function CardDetail(props) {
         allowedCardAuthMethods,
       },
       transaction: {
-        totalPrice:
-          chargeData?.service_type === "inclusive"
-            ? paymentData?.amount?.toString()
-            : subData?.charge_object?.charges_obj?.final_amount?.toString(),
+        totalPrice: chargeData?.isPaymentGateWay
+          ? subData?.charge_object?.charges_obj?.final_amount?.toString()
+          : chargeData?.withChargeAmount?.toString(),
         totalPriceStatus: "FINAL",
         currencyCode: paymentData?.currency,
       },
@@ -473,11 +469,16 @@ export default function CardDetail(props) {
                 // Send a token to your payment gateway
               })
               .catch((error) => {
-                setPaySuccess("fail");
+                setPaySuccess("fail", error.message);
                 setTimeout(() => {
                   setPaySuccess(false);
                 }, 2000);
-                console.log(error.code, error.message);
+                sendErrorReason(
+                  liveUrl,
+                  code,
+                  error?.message,
+                  chargeData?.auth_token
+                );
               });
           }
         }
@@ -485,16 +486,15 @@ export default function CardDetail(props) {
     }
   };
 
-  const applePay = async (item, clientSecret) => {
+  const applePay = async (item, clientSecret, code) => {
     const { error } = await confirmPlatformPayPayment(clientSecret, {
       applePay: {
         cartItems: [
           {
             label: "Total",
-            amount:
-              chargeData?.service_type === "inclusive"
-                ? paymentData?.amount?.toString()
-                : item?.charge_object?.charges_obj?.final_amount?.toString(),
+            amount: chargeData?.isPaymentGateWay
+              ? item?.charge_object?.charges_obj?.final_amount?.toString()
+              : chargeData?.withChargeAmount?.toString(),
             paymentType: PlatformPay.PaymentType.Immediate,
           },
         ],
@@ -505,11 +505,11 @@ export default function CardDetail(props) {
       },
     });
     if (error) {
-      setPaySuccess("fail");
+      setPaySuccess("fail", error?.message);
       setTimeout(() => {
         setPaySuccess(false);
       }, 2000);
-      // handle error
+      sendErrorReason(liveUrl, code, error?.message, chargeData?.auth_token);
     } else {
       setPaySuccess("success");
       onPaymentDone();
@@ -609,7 +609,7 @@ export default function CardDetail(props) {
                     <Text style={styles.paymentMethodText}>
                       {item["payment_method.payment_method"]}
                     </Text>
-                    {chargeData?.service_type !== "inclusive" && (
+                    {chargeData?.isPaymentGateWay && (
                       <Text style={styles.startAtText}>
                         {`Starts @${
                           Number(
@@ -762,9 +762,7 @@ export default function CardDetail(props) {
                             width: SMALL_BOX_WIDTH,
                             minHeight:
                               deviceHeight *
-                              (chargeData?.service_type !== "inclusive"
-                                ? 0.14
-                                : 0.12),
+                              (chargeData?.isPaymentGateWay ? 0.14 : 0.12),
                             borderColor:
                               isShow === index ? "#0068EF" : "#F8F8F8",
                           },
@@ -841,7 +839,7 @@ export default function CardDetail(props) {
                           >
                             {item["payment_method.payment_method"]}
                           </Text>
-                          {chargeData?.service_type !== "inclusive" && (
+                          {chargeData?.isPaymentGateWay && (
                             <Text
                               style={{
                                 fontSize: 11,
@@ -955,10 +953,7 @@ export default function CardDetail(props) {
           tabs={paymentType}
           activeTab={tabSelected}
           chargeData={chargeData}
-          subTabSize={
-            deviceWidth *
-            (chargeData?.service_type !== "inclusive" ? 0.35 : 0.3)
-          }
+          subTabSize={deviceWidth * (chargeData?.isPaymentGateWay ? 0.35 : 0.3)}
           onTabChange={(currentTab) => {
             setTabSelected(currentTab);
             customCardRef?.current?.resetData();

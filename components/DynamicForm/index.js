@@ -49,18 +49,14 @@ const DForm = (props) => {
   );
   let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
 
-  const amountToAdd = Number(
-    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
-  );
   const paymentGatwayFee = (
     PayObj?.charge_object?.charges_obj?.final_amount -
-    (paymentData?.amount + amountToAdd)
+    chargeData?.withChargeAmount
   )?.toFixed(2);
 
-  const finalAmount =
-    chargeData?.service_type === "inclusive"
-      ? paymentData?.amount
-      : PayObj?.charge_object?.charges_obj?.final_amount;
+  const finalAmount = chargeData?.isPaymentGateWay
+    ? PayObj?.charge_object?.charges_obj?.final_amount
+    : chargeData?.withChargeAmount;
 
   useEffect(() => {
     getCardList();
@@ -233,18 +229,20 @@ const DForm = (props) => {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount + amountToAdd,
+        amount: chargeData?.withChargeAmount,
         final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: PayObj?.country_id,
         currency: paymentData?.currency,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: PayObj?.payment_method_id,
         payment_sub_method_id: PayObj?.payment_sub_method_id,
         transaction_code: paymentData?.transaction_code,
         gateway_code: PayObj?.charge_object?.gateway_code,
         gateway_id: PayObj?.gateway_id,
-        service_type: chargeData?.service_type,
+        payment_gateway_fee: chargeData?.isPaymentGateWay
+          ? "exclusive"
+          : "inclusive",
         email: paymentData?.email,
         base_amount: paymentData?.amount,
         charge_id: PayObj?.charge_object?.charges_obj?.id,
@@ -406,7 +404,7 @@ const DForm = (props) => {
     };
 
     fetch(
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://checkout-test.adyen.com/v70/payments"
         : "https://checkout-live.adyen.com/v70/payments",
       requestOptions
@@ -454,7 +452,7 @@ const DForm = (props) => {
 
     // Set the API endpoint URL
     const API_URL =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://apitest.authorize.net/xml/v1/request.api"
         : "https://api.authorize.net/xml/v1/request.api";
 
@@ -528,7 +526,7 @@ const DForm = (props) => {
 
     // Set the API endpoint URL
     const API_URL =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://apitest.authorize.net/xml/v1/request.api"
         : "https://api.authorize.net/xml/v1/request.api";
 
@@ -591,7 +589,7 @@ const DForm = (props) => {
         app_token: paymentData?.app_token,
         gateway_code: PayObj?.charge_object?.gateway_code,
         email: paymentData?.email,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: PayObj?.charge_object?.payment_method_id,
       };
 
@@ -753,7 +751,7 @@ const DForm = (props) => {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
-        {chargeData?.service_type !== "inclusive" && (
+        {chargeData?.mainChargeData && (
           <View
             style={{
               marginTop: 10,
@@ -778,7 +776,7 @@ const DForm = (props) => {
             </TouchableOpacity>
           </View>
         )}
-        {isShowBreackdown && chargeData?.service_type !== "inclusive" && (
+        {isShowBreackdown && chargeData?.mainChargeData && (
           <>
             <View
               style={{
@@ -805,69 +803,50 @@ const DForm = (props) => {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {paymentData?.amount}
+                {chargeData?.withoutChargeAmount}
               </Text>
             </View>
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                }}
-                numberOfLines={2}
-              >
-                Platform Fee:
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                  fontWeight: "bold",
-                }}
-                numberOfLines={2}
-              >
-                {currency_symbol[paymentData?.currency]}
-                {amountToAdd}
-              </Text>
-            </View>
+            {isArray(chargeData?.mainChargeData) &&
+              !isEmpty(chargeData?.mainChargeData) &&
+              chargeData?.mainChargeData?.map((item, index) => {
+                const amountToAdd = (item?.value * paymentData?.amount) / 100;
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                }}
-                numberOfLines={2}
-              >
-                Payment Gateway Fee:
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                  fontWeight: "bold",
-                }}
-                numberOfLines={2}
-              >
-                {currency_symbol[paymentData?.currency]}
-                {paymentGatwayFee}
-              </Text>
-            </View>
+                return (
+                  <View
+                    key={index}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: "#000",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {item?.name}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: "#000",
+                        fontWeight: "bold",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {currency_symbol[paymentData?.currency]}
+                      {item?.slug === "payment_gateway_fee"
+                        ? paymentGatwayFee
+                        : amountToAdd}
+                    </Text>
+                  </View>
+                );
+              })}
 
             <View
               style={{

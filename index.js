@@ -15,19 +15,19 @@ import {
 } from "react-native";
 // InAppBrowser Integrated for Supporting Popups
 import { InAppBrowser } from "react-native-inappbrowser-reborn";
-import { isEmpty } from "lodash";
+import { isArray, isEmpty } from "lodash";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import PropTypes from "prop-types";
 
 import styles from "./style";
-import SubList from "./components/SubList";
-import CustomSub from "./components/CustomSub";
-import { getApiDataProgressPayment } from "./components/APIHelper";
-import CardDetail from "./components/CardDetail";
-import PaySuccess from "./components/PaySuccessPage";
-import { currency_symbol } from "./components/staticData";
-import Cbutton from "./components/CButton";
+import SubList from "../SubList";
+import CustomSub from "../CustomSub";
+import { getApiDataProgressPayment } from "../APIHelper";
+import CardDetail from "../CardDetail";
+import PaySuccess from "../PaySuccessPage";
+import { currency_symbol } from "../staticData";
+import Cbutton from "../CButton";
 import {
   PlatformPay,
   StripeProvider,
@@ -37,7 +37,7 @@ import {
 // this API call will give you which payment we have to do
 // const liveUrl = 'https://staging.aautipay.com/plugin/';
 // const liveUrl = 'http://192.168.0.126:3000/plugin/';
-// const liveUrl = 'http://192.168.0.125:3000/plugin/';
+// const liveUrl = "http://192.168.0.127:3000/plugin/";
 const liveUrl = "https://dev.aautipay.com/plugin/";
 
 const PaymentAgreegator = (props) => {
@@ -57,6 +57,7 @@ const PaymentAgreegator = (props) => {
     onModalClose = () => {},
     isPlateformfeeIncluded = false,
     merchantIdentifier = "com.app.saayamdemo",
+    appCharges = [],
 
     //Main button
     buttonTitle = "Aauti Pay",
@@ -157,17 +158,17 @@ const PaymentAgreegator = (props) => {
         );
         setPageLoader(false);
       } else {
-        const chargeData1 = {
-          service_type: response?.data?.userData?.service_type,
-          service_charge: response?.data?.userData?.service_charge,
-          auth_token: response?.data?.auth_token,
-        };
-        setChargeData(chargeData1);
-        getPaymentOption(
-          response?.data?.userData?.service_charge,
-          response?.data?.auth_token,
-          response?.data?.userData?.service_type
-        );
+        !isEmpty(appCharges)
+          ? chargesApply(
+              appCharges,
+              response?.data?.auth_token,
+              response?.data?.userData?.portal_mode
+            )
+          : getAppCharges(
+              response?.data?.auth_token,
+              response?.data?.userData?.id,
+              response?.data?.userData?.portal_mode
+            );
       }
     } catch (error) {
       setPageLoader(false);
@@ -175,16 +176,84 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  async function checkStripePayment(url) {
-    const stripeSecretKey =
-      "sk_test_51Lp74WLvsFbqn13Lg5HIXlLhey0yNEaDiJOHzBxjRweXf4DAiE6VSriOhEi71XB2WODBO0E19ZQbRsCoYMlgoGMY00kZzA0HJ6";
+  async function getAppCharges(token, useID, mode) {
+    fetch(`${liveUrl}get-app-charges/${useID}/${paymentData?.country_code}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.status) {
+          chargesApply(data?.data, token, mode);
+        } else {
+          setPageLoader(false);
+        }
+        // Handle the response data here
+      })
+      .catch((error) => {
+        // Handle any errors here
+        setPageLoader(false);
+      });
+  }
 
+  const chargesApply = (mainChargeData, token, mode) => {
+    let sum_per = 0;
+    let sum_inc_per = 0;
+
+    const filExc = isArray(mainChargeData)
+      ? mainChargeData?.filter((V) => V.type === "exclusive")
+      : [];
+
+    const filInc = isArray(mainChargeData)
+      ? mainChargeData?.filter((V) => V.type === "inclusive")
+      : [];
+
+    isArray(filExc) &&
+      !isEmpty(filExc) &&
+      filExc.forEach((v) => {
+        if (v.slug !== "payment_gateway_fee") {
+          sum_per = sum_per + v.value;
+        }
+      });
+    const amountToAdd = (sum_per * paymentData?.amount) / 100;
+
+    isArray(filInc) &&
+      !isEmpty(filInc) &&
+      filInc.forEach((v) => {
+        if (v.slug !== "payment_gateway_fee") {
+          sum_inc_per = sum_inc_per + v.value;
+        }
+      });
+    const amountToMin = (sum_inc_per * paymentData?.amount) / 100;
+
+    const isPaymentGateWay =
+      isArray(filExc) &&
+      !isEmpty(filExc) &&
+      filExc.find((v) => v.slug === "payment_gateway_fee");
+
+    const chargeData1 = {
+      isPaymentGateWay: !isEmpty(isPaymentGateWay),
+      exclusive_Data: filExc,
+      withChargeAmount: paymentData?.amount + amountToAdd,
+      withoutChargeAmount: paymentData?.amount - amountToMin,
+      auth_token: token,
+      mainChargeData: mainChargeData,
+      mode: mode,
+    };
+    setChargeData(chargeData1);
+    getPaymentOption(token, paymentData?.amount + amountToAdd);
+  };
+
+  async function checkStripePayment(url) {
     var regex = /[?&]([^=#]+)=([^&#]*)/g,
       params = {},
       match;
-    while ((match = regex.exec(url))) {
+    if (!isEmpty(url) && (match = regex.exec(url))) {
       params[match[1]] = match[2];
     }
+    const stripeSecretKey = params?.key;
     fetch(
       `https://api.stripe.com/v1/payment_intents/${params?.payment_intent}`,
       {
@@ -262,7 +331,7 @@ const PaymentAgreegator = (props) => {
       name: paymentData?.name,
       transaction_code: paymentData?.transaction_code,
       app_token: paymentData?.app_token,
-      mode: paymentData?.mode,
+      mode: chargeData?.mode,
       country_code: paymentData?.country_code,
       currency: paymentData?.currency,
       payment_method: "card",
@@ -291,18 +360,14 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  const getPaymentOption = (chargePer, auth_token, service_type) => {
-    const amountToAdd = (chargePer * paymentData?.amount) / 100;
-
+  const getPaymentOption = (auth_token, amountToAdd) => {
     try {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
-        }?method=${""}&mode=${paymentData?.mode}&amount=${
-          service_type === "inclusive"
-            ? paymentData?.amount
-            : paymentData?.amount + amountToAdd
-        }&currency=${paymentData?.currency}`,
+        }?method=${""}&mode=${
+          chargeData?.mode
+        }&amount=${amountToAdd}&currency=${paymentData?.currency}`,
         {
           method: "GET",
           headers: {
@@ -538,6 +603,7 @@ PaymentAgreegator.propTypes = {
   themeColor: PropTypes.string,
   isPlateformfeeIncluded: PropTypes.bool,
   merchantIdentifier: PropTypes.string,
+  appCharges: PropTypes.array,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -550,6 +616,7 @@ PaymentAgreegator.defaultProps = {
   themeColor: "#F5F9FF",
   isPlateformfeeIncluded: false,
   merchantIdentifier: "com.app.saayamdemo",
+  appCharges: [],
 };
 
 export default PaymentAgreegator;

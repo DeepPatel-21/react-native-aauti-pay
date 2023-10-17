@@ -93,18 +93,14 @@ function CustomCard(props, ref) {
     expire: false,
   });
 
-  const amountToAdd = Number(
-    ((chargeData?.service_charge * paymentData?.amount) / 100)?.toFixed(2)
-  );
   const paymentGatwayFee = (
     cardBrandSelect?.charge_object?.charges_obj?.final_amount -
-    (paymentData?.amount + amountToAdd)
+    chargeData?.withChargeAmount
   )?.toFixed(2);
 
-  const finalAmount =
-    chargeData?.service_type === "inclusive"
-      ? paymentData?.amount
-      : cardBrandSelect?.charge_object?.charges_obj?.final_amount;
+  const finalAmount = chargeData?.isPaymentGateWay
+    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
+    : chargeData?.withChargeAmount;
 
   useEffect(() => {
     getCardList();
@@ -238,6 +234,7 @@ function CustomCard(props, ref) {
     setBtnLoader(true);
     setPaySuccess("loading");
     const stripeSecretKey = originalText?.private_key;
+    const stripePublicKey = originalText?.public_key;
     const cardType1 = creditCardType.expirationDate(expDate);
 
     const cardData = {
@@ -249,7 +246,7 @@ function CustomCard(props, ref) {
     fetch("https://api.stripe.com/v1/tokens", {
       method: "POST",
       headers: {
-        Authorization: `Basic ${btoa(`${stripeSecretKey}:`)}`,
+        Authorization: `Basic ${btoa(`${stripePublicKey}:${stripeSecretKey}`)}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams(cardData).toString(),
@@ -282,18 +279,20 @@ function CustomCard(props, ref) {
     try {
       const data = {
         name: paymentData?.name,
-        amount: paymentData?.amount + amountToAdd,
+        amount: chargeData?.withChargeAmount,
         final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: cardBrandSelect?.country_id,
         currency: paymentData?.currency,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: cardBrandSelect?.payment_method_id,
         payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
         transaction_code: paymentData?.transaction_code,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         gateway_id: cardBrandSelect?.gateway_id,
-        service_type: chargeData?.service_type,
+        payment_gateway_fee: chargeData?.isPaymentGateWay
+          ? "exclusive"
+          : "inclusive",
         email: paymentData?.email,
         base_amount: paymentData?.amount,
         charge_id: cardBrandSelect?.charge_object?.charges_obj?.id,
@@ -449,7 +448,7 @@ function CustomCard(props, ref) {
     const credentials = `${clientId}:${clientSecret}`;
 
     const apiUrl =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? `https://api.sandbox.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`
         : `https://api.braintreegateway.com/merchants/${originalText?.gateway_merchantId}/customers`;
     const encodedApiKey = btoa(credentials);
@@ -516,7 +515,7 @@ function CustomCard(props, ref) {
 
   const createTokenbraintree = async (cusID, merID, headers) => {
     const apiUrl =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? `https://api.sandbox.braintreegateway.com/merchants/${merID}/payment_methods`
         : `https://api.braintreegateway.com/merchants/${merID}/payment_methods`;
 
@@ -645,7 +644,7 @@ function CustomCard(props, ref) {
       const credentialsBase64 = btoa(credentials);
 
       const response = await axios.post(
-        paymentData?.mode === "test"
+        chargeData?.mode === "test"
           ? "https://api.sandbox.paypal.com/v1/oauth2/token"
           : "https://api.paypal.com/v1/oauth2/token",
         "grant_type=client_credentials",
@@ -659,7 +658,7 @@ function CustomCard(props, ref) {
       const { access_token } = response.data;
 
       const cardTokenResponse = await axios.post(
-        paymentData?.mode === "test"
+        chargeData?.mode === "test"
           ? "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens"
           : "https://api-m.paypal.com/v3/vault/setup-tokens",
         payment_source,
@@ -748,7 +747,7 @@ function CustomCard(props, ref) {
     try {
       const data = {
         app_token: paymentData?.app_token,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: cardBrandSelect?.payment_method_id,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         email: paymentData?.email,
@@ -823,7 +822,7 @@ function CustomCard(props, ref) {
     };
 
     fetch(
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://checkout-test.adyen.com/v70/payments"
         : "https://checkout-live.adyen.com/v70/payments",
       requestOptions
@@ -889,7 +888,7 @@ function CustomCard(props, ref) {
         app_token: paymentData?.app_token,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         email: paymentData?.email,
-        mode: paymentData?.mode,
+        mode: chargeData?.mode,
         payment_method_id: cardBrandSelect?.charge_object?.payment_method_id,
         payment_sub_method_id: cardBrandSelect?.payment_sub_method_id,
       };
@@ -945,7 +944,7 @@ function CustomCard(props, ref) {
 
     // Set the API endpoint URL
     const API_URL =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://apitest.authorize.net/xml/v1/request.api"
         : "https://api.authorize.net/xml/v1/request.api";
 
@@ -1016,7 +1015,7 @@ function CustomCard(props, ref) {
 
     // Set the API endpoint URL
     const API_URL =
-      paymentData?.mode === "test"
+      chargeData?.mode === "test"
         ? "https://apitest.authorize.net/xml/v1/request.api"
         : "https://api.authorize.net/xml/v1/request.api";
 
@@ -1386,7 +1385,7 @@ function CustomCard(props, ref) {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any card details, So your data will be secure end to end.
         </Text>
-        {chargeData?.service_type !== "inclusive" && (
+        {!isEmpty(chargeData?.mainChargeData) && (
           <View
             style={{
               marginTop: 10,
@@ -1411,7 +1410,7 @@ function CustomCard(props, ref) {
             </TouchableOpacity>
           </View>
         )}
-        {isShowBreackdown && chargeData?.service_type !== "inclusive" && (
+        {isShowBreackdown && !isEmpty(chargeData?.mainChargeData) && (
           <>
             <View
               style={{
@@ -1438,69 +1437,49 @@ function CustomCard(props, ref) {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {paymentData?.amount}
+                {chargeData?.withoutChargeAmount}
               </Text>
             </View>
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                }}
-                numberOfLines={2}
-              >
-                Platform Fee:
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                  fontWeight: "bold",
-                }}
-                numberOfLines={2}
-              >
-                {currency_symbol[paymentData?.currency]}
-                {amountToAdd}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                }}
-                numberOfLines={2}
-              >
-                Payment Gateway Fee:
-              </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#000",
-                  fontWeight: "bold",
-                }}
-                numberOfLines={2}
-              >
-                {currency_symbol[paymentData?.currency]}
-                {paymentGatwayFee}
-              </Text>
-            </View>
+            {isArray(chargeData?.mainChargeData) &&
+              !isEmpty(chargeData?.mainChargeData) &&
+              chargeData?.mainChargeData?.map((item, index) => {
+                const amountToAdd = (item?.value * paymentData?.amount) / 100;
+                return (
+                  <View
+                    key={index}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: "#000",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {item?.name}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: "#000",
+                        fontWeight: "bold",
+                      }}
+                      numberOfLines={2}
+                    >
+                      {currency_symbol[paymentData?.currency]}
+                      {item?.slug === "payment_gateway_fee"
+                        ? paymentGatwayFee
+                        : amountToAdd}
+                    </Text>
+                  </View>
+                );
+              })}
 
             <View
               style={{

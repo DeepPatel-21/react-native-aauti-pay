@@ -169,8 +169,7 @@ export default function TabSwitch(props) {
               ],
               backgroundColor: themeColor,
               width: subTabSize,
-              height:
-                chargeData?.service_type !== "inclusive" ? 68 : IOS ? 48 : 44,
+              height: chargeData?.isPaymentGateWay ? 68 : IOS ? 48 : 44,
               borderBottomWidth: 2,
               borderBottomColor: "#0068EF",
             },
@@ -213,7 +212,7 @@ export default function TabSwitch(props) {
               resizeMode="center"
               alt={obj["payment_sub_method.type"]}
             />
-            {chargeData?.service_type !== "inclusive" && (
+            {chargeData?.isPaymentGateWay && (
               <Text
                 style={[
                   styles.tabText,
