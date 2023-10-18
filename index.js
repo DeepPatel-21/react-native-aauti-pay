@@ -21,25 +21,18 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import PropTypes from "prop-types";
 
 import styles from "./style";
-import SubList from "../SubList";
-import CustomSub from "../CustomSub";
-import { getApiDataProgressPayment } from "../APIHelper";
-import CardDetail from "../CardDetail";
-import PaySuccess from "../PaySuccessPage";
-import { currency_symbol } from "../staticData";
-import Cbutton from "../CButton";
+import SubList from "./components/SubList";
+import CustomSub from "./components/CustomSub";
+import { getApiDataProgressPayment } from "./components/APIHelper";
+import CardDetail from "./components/CardDetail";
+import PaySuccess from "./components/PaySuccessPage";
+import { currency_symbol } from "./components/staticData";
+import Cbutton from "./components/CButton";
 import {
   PlatformPay,
   StripeProvider,
   confirmPlatformPayPayment,
 } from "@stripe/stripe-react-native";
-
-// this API call will give you which payment we have to do
-const liveUrl = "https://staging.aautipay.com/plugin/";
-// const liveUrl = 'https://prodapi.aautipay.com/plugin/';
-// const liveUrl = 'http://192.168.0.126:3000/plugin/';
-// const liveUrl = "http://192.168.0.127:3000/plugin/";
-// const liveUrl = "https://dev.aautipay.com/plugin/";
 
 const PaymentAgreegator = (props) => {
   // styling for whole component
@@ -59,6 +52,7 @@ const PaymentAgreegator = (props) => {
     isPlateformfeeIncluded = false,
     merchantIdentifier = "com.app.saayamdemo",
     appCharges = [],
+    pluginURL = "staging", //staging, dev, prodapi
 
     //Main button
     buttonTitle = "Aauti Pay",
@@ -75,6 +69,9 @@ const PaymentAgreegator = (props) => {
     endPosition = { x: 1, y: 0.5 },
     themeColor = "#F5F9FF",
   } = props;
+
+  const liveUrl = `https://${pluginURL}.aautipay.com/plugin/`;
+  // const liveUrl = 'http://192.168.0.141:3000/plugin/';
 
   const [webViewState, setWebViewState] = useState({
     modalBool: false,
@@ -244,14 +241,14 @@ const PaymentAgreegator = (props) => {
       mode: mode,
     };
     setChargeData(chargeData1);
-    getPaymentOption(token, paymentData?.amount + amountToAdd);
+    getPaymentOption(token, paymentData?.amount + amountToAdd, mode);
   };
 
   async function checkStripePayment(url) {
     var regex = /[?&]([^=#]+)=([^&#]*)/g,
       params = {},
       match;
-    if (!isEmpty(url) && (match = regex.exec(url))) {
+    while (!isEmpty(url) && (match = regex.exec(url))) {
       params[match[1]] = match[2];
     }
     const stripeSecretKey = params?.key;
@@ -361,14 +358,14 @@ const PaymentAgreegator = (props) => {
     }
   }
 
-  const getPaymentOption = (auth_token, amountToAdd) => {
+  const getPaymentOption = (auth_token, amountToAdd, mode) => {
     try {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
-        }?method=${""}&mode=${
-          chargeData?.mode
-        }&amount=${amountToAdd}&currency=${paymentData?.currency}`,
+        }?method=${""}&mode=${mode}&amount=${amountToAdd}&currency=${
+          paymentData?.currency
+        }`,
         {
           method: "GET",
           headers: {
@@ -605,6 +602,7 @@ PaymentAgreegator.propTypes = {
   isPlateformfeeIncluded: PropTypes.bool,
   merchantIdentifier: PropTypes.string,
   appCharges: PropTypes.array,
+  pluginURL: PropTypes.string,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -618,6 +616,7 @@ PaymentAgreegator.defaultProps = {
   isPlateformfeeIncluded: false,
   merchantIdentifier: "com.app.saayamdemo",
   appCharges: [],
+  pluginURL: "staging",
 };
 
 export default PaymentAgreegator;
