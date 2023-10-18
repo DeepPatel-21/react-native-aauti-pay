@@ -49,9 +49,9 @@ const PaymentAgreegator = (props) => {
     webViewStyles = {},
     injectedMessage = "",
     onModalClose = () => {},
-    isPlateformfeeIncluded = false,
-    merchantIdentifier = "com.app.saayamdemo",
+    merchantIdentifier = "merchant.com.app.saayampayment",
     appCharges = [],
+    noCharge = false,
     pluginURL = "staging", //staging, dev, prodapi
 
     //Main button
@@ -289,6 +289,9 @@ const PaymentAgreegator = (props) => {
       setActiveIndex([]);
       setisShow("");
     }
+    if (webViewState?.modalBool) {
+      setPaySuccess(false);
+    }
   }, [webViewState]);
 
   useEffect(() => {
@@ -363,9 +366,9 @@ const PaymentAgreegator = (props) => {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
-        }?method=${""}&mode=${mode}&amount=${amountToAdd}&currency=${
-          paymentData?.currency
-        }`,
+        }?method=${""}&mode=${mode}&amount=${
+          noCharge ? paymentData?.amount : amountToAdd
+        }&currency=${paymentData?.currency}`,
         {
           method: "GET",
           headers: {
@@ -402,8 +405,8 @@ const PaymentAgreegator = (props) => {
 
   return (
     <StripeProvider
-      publishableKey="pk_test_51Lp74WLvsFbqn13LVwHWLWuHOMzx3Jyn8dZSAVjGf9oIetpNOgvbbMMRjp5WRRheejXuSftYmD9uoebv2y0Rdm1h003RC3YCS6"
-      merchantIdentifier={`merchant.${merchantIdentifier}`}
+      publishableKey="pk_live_51LmctNEVo4rpUEeL3ufuofXQZKsT2NZho8zd22MNmM8XIH4QKDYeo8UyXn2EEmUWfMyyjgHscvDHMui8ahYgRoox00gZlMdWLB"
+      merchantIdentifier={merchantIdentifier}
     >
       <View style={styles.root}>
         <Cbutton {...props} />
@@ -599,7 +602,7 @@ PaymentAgreegator.propTypes = {
   loader: PropTypes.bool,
   mainButtonContainerStyle: PropTypes.object,
   themeColor: PropTypes.string,
-  isPlateformfeeIncluded: PropTypes.bool,
+  noCharge: PropTypes.bool,
   merchantIdentifier: PropTypes.string,
   appCharges: PropTypes.array,
   pluginURL: PropTypes.string,
@@ -613,8 +616,8 @@ PaymentAgreegator.defaultProps = {
   loader: false,
   mainButtonContainerStyle: {},
   themeColor: "#F5F9FF",
-  isPlateformfeeIncluded: false,
-  merchantIdentifier: "com.app.saayamdemo",
+  noCharge: false,
+  merchantIdentifier: "merchant.com.app.saayampayment",
   appCharges: [],
   pluginURL: "staging",
 };

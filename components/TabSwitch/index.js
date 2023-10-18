@@ -38,6 +38,7 @@ export default function TabSwitch(props) {
     isRTL = false,
     themeColor,
     chargeData,
+    noCharge,
   } = props;
 
   const activeTabIndex = props.tabs.findIndex(
@@ -169,7 +170,8 @@ export default function TabSwitch(props) {
               ],
               backgroundColor: themeColor,
               width: subTabSize,
-              height: chargeData?.isPaymentGateWay ? 68 : IOS ? 48 : 44,
+              height:
+                chargeData?.isPaymentGateWay && !noCharge ? 68 : IOS ? 48 : 44,
               borderBottomWidth: 2,
               borderBottomColor: "#0068EF",
             },
@@ -212,7 +214,7 @@ export default function TabSwitch(props) {
               resizeMode="center"
               alt={obj["payment_sub_method.type"]}
             />
-            {chargeData?.isPaymentGateWay && (
+            {chargeData?.isPaymentGateWay && !noCharge && (
               <Text
                 style={[
                   styles.tabText,

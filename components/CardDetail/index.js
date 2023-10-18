@@ -58,6 +58,7 @@ export default function CardDetail(props) {
     isShow,
     setisShow,
     chargeData,
+    noCharge,
   } = props;
 
   const deviceHeight = Dimensions.get("screen").height;
@@ -162,7 +163,7 @@ export default function CardDetail(props) {
         `${liveUrl}payment-options/${paymentData.country_code}?method=${
           method ? method : ""
         }&mode=${chargeData?.mode}&amount=${
-          chargeData?.withChargeAmount
+          noCharge ? paymentData?.amount : chargeData?.withChargeAmount
         }&currency=${paymentData?.currency}`,
         {
           method: "GET",
@@ -340,7 +341,9 @@ export default function CardDetail(props) {
         gateway_code: subData?.charge_object?.gateway_code,
         gateway_id: subData?.gateway_id,
         email: paymentData?.email,
-        payment_gateway_fee: chargeData?.isPaymentGateWay
+        payment_gateway_fee: noCharge
+          ? "inclusive"
+          : chargeData?.isPaymentGateWay
           ? "exclusive"
           : "inclusive",
         base_amount: paymentData?.amount,
@@ -443,7 +446,9 @@ export default function CardDetail(props) {
         allowedCardAuthMethods,
       },
       transaction: {
-        totalPrice: chargeData?.isPaymentGateWay
+        totalPrice: noCharge
+          ? paymentData?.amount?.toString()
+          : chargeData?.isPaymentGateWay
           ? subData?.charge_object?.charges_obj?.final_amount?.toString()
           : chargeData?.withChargeAmount?.toString(),
         totalPriceStatus: "FINAL",
@@ -487,12 +492,44 @@ export default function CardDetail(props) {
   };
 
   const applePay = async (item, clientSecret, code) => {
+    const newArr = [];
+    const paymentGatwayFee = (
+      item?.charge_object?.charges_obj?.final_amount -
+      chargeData?.withChargeAmount
+    )?.toFixed(2);
+
+    const amountObj = {
+      label: "Amount",
+      amount: chargeData?.withoutChargeAmount?.toString(),
+      paymentType: PlatformPay.PaymentType.Immediate,
+    };
+    !noCharge && newArr.push(amountObj);
+
+    isArray(chargeData?.mainChargeData) &&
+      !isEmpty(chargeData?.mainChargeData) &&
+      !noCharge;
+    chargeData?.mainChargeData?.map((item1, index) => {
+      const amountToAdd = (item1?.value * paymentData?.amount) / 100;
+
+      const newObj = {
+        label: item1?.name,
+        amount:
+          item1?.slug === "payment_gateway_fee"
+            ? paymentGatwayFee?.toString()
+            : amountToAdd?.toString(),
+        paymentType: PlatformPay.PaymentType.Immediate,
+      };
+      !noCharge && newArr.push(newObj);
+    });
     const { error } = await confirmPlatformPayPayment(clientSecret, {
       applePay: {
         cartItems: [
+          ...newArr,
           {
             label: "Total",
-            amount: chargeData?.isPaymentGateWay
+            amount: noCharge
+              ? paymentData?.amount?.toString()
+              : chargeData?.isPaymentGateWay
               ? item?.charge_object?.charges_obj?.final_amount?.toString()
               : chargeData?.withChargeAmount?.toString(),
             paymentType: PlatformPay.PaymentType.Immediate,
@@ -609,7 +646,7 @@ export default function CardDetail(props) {
                     <Text style={styles.paymentMethodText}>
                       {item["payment_method.payment_method"]}
                     </Text>
-                    {chargeData?.isPaymentGateWay && (
+                    {chargeData?.isPaymentGateWay && !noCharge && (
                       <Text style={styles.startAtText}>
                         {`Starts @${
                           Number(
@@ -839,7 +876,7 @@ export default function CardDetail(props) {
                           >
                             {item["payment_method.payment_method"]}
                           </Text>
-                          {chargeData?.isPaymentGateWay && (
+                          {chargeData?.isPaymentGateWay && !noCharge && (
                             <Text
                               style={{
                                 fontSize: 11,

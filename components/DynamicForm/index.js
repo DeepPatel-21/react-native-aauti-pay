@@ -32,6 +32,7 @@ const DForm = (props) => {
     setPaySuccess,
     themeColor,
     chargeData,
+    noCharge,
   } = props;
   const [paymentObj, setPaymentObj] = useState({});
   const [btnLoader, setBtnLoader] = useState(false);
@@ -54,7 +55,9 @@ const DForm = (props) => {
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
-  const finalAmount = chargeData?.isPaymentGateWay
+  const finalAmount = noCharge
+    ? paymentData?.amount
+    : chargeData?.isPaymentGateWay
     ? PayObj?.charge_object?.charges_obj?.final_amount
     : chargeData?.withChargeAmount;
 
@@ -240,7 +243,9 @@ const DForm = (props) => {
         transaction_code: paymentData?.transaction_code,
         gateway_code: PayObj?.charge_object?.gateway_code,
         gateway_id: PayObj?.gateway_id,
-        payment_gateway_fee: chargeData?.isPaymentGateWay
+        payment_gateway_fee: noCharge
+          ? "inclusive"
+          : chargeData?.isPaymentGateWay
           ? "exclusive"
           : "inclusive",
         email: paymentData?.email,
@@ -751,7 +756,7 @@ const DForm = (props) => {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
-        {chargeData?.mainChargeData && (
+        {chargeData?.mainChargeData && !noCharge && (
           <View
             style={{
               marginTop: 10,

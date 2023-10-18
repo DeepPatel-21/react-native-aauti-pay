@@ -40,6 +40,7 @@ function CustomCard(props, ref) {
     liveUrl,
     themeColor,
     chargeData,
+    noCharge,
   } = props;
 
   let bytes = CryptoJS.AES.decrypt(
@@ -98,7 +99,9 @@ function CustomCard(props, ref) {
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
-  const finalAmount = chargeData?.isPaymentGateWay
+  const finalAmount = noCharge
+    ? paymentData?.amount
+    : chargeData?.isPaymentGateWay
     ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
     : chargeData?.withChargeAmount;
 
@@ -290,7 +293,9 @@ function CustomCard(props, ref) {
         transaction_code: paymentData?.transaction_code,
         gateway_code: cardBrandSelect?.charge_object?.gateway_code,
         gateway_id: cardBrandSelect?.gateway_id,
-        payment_gateway_fee: chargeData?.isPaymentGateWay
+        payment_gateway_fee: noCharge
+          ? "inclusive"
+          : chargeData?.isPaymentGateWay
           ? "exclusive"
           : "inclusive",
         email: paymentData?.email,
@@ -1385,7 +1390,7 @@ function CustomCard(props, ref) {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any card details, So your data will be secure end to end.
         </Text>
-        {!isEmpty(chargeData?.mainChargeData) && (
+        {!isEmpty(chargeData?.mainChargeData) && !noCharge && (
           <View
             style={{
               marginTop: 10,
