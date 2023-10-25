@@ -438,7 +438,7 @@ export default function CardDetail(props) {
                 gateway: "stripe",
                 gatewayMerchantId: "",
                 stripe: {
-                  publishableKey: originalText?.private_key,
+                  publishableKey: originalText?.public_key,
                   version: "2018-11-08",
                 },
               },
