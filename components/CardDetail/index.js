@@ -36,6 +36,7 @@ import DForm from "../DynamicForm";
 import { GooglePay } from "react-native-google-pay";
 import {
   PlatformPay,
+  StripeProvider,
   confirmPlatformPayPayment,
   isPlatformPaySupported,
 } from "@stripe/stripe-react-native";
@@ -59,6 +60,7 @@ export default function CardDetail(props) {
     setisShow,
     chargeData,
     noCharge,
+    merchantIdentifier,
   } = props;
 
   const deviceHeight = Dimensions.get("screen").height;
@@ -701,900 +703,913 @@ export default function CardDetail(props) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <View
-        style={{
-          flex: isEmpty(isShow.toString()) ? 1 : null,
-        }}
-      >
-        {isArray(paymentMethod) && !isEmpty(paymentMethod) ? (
-          isEmpty(isShow.toString()) ? (
-            <ScrollView bounces={false}>
-              {!isEmpty(isOther) && (
-                <>
-                  <Text style={styles.typeText}>Digital Wallets</Text>
-                  <View style={styles.paymentBoxWrapper}>
-                    {renderFirstDisplay("digital wallet")}
-                  </View>
-                </>
-              )}
+    <StripeProvider
+      publishableKey={chargeData?.public_key}
+      merchantIdentifier={merchantIdentifier}
+    >
+      <View style={{ flex: 1 }}>
+        <View
+          style={{
+            flex: isEmpty(isShow.toString()) ? 1 : null,
+          }}
+        >
+          {isArray(paymentMethod) && !isEmpty(paymentMethod) ? (
+            isEmpty(isShow.toString()) ? (
+              <ScrollView bounces={false}>
+                {!isEmpty(isOther) && (
+                  <>
+                    <Text style={styles.typeText}>Digital Wallets</Text>
+                    <View style={styles.paymentBoxWrapper}>
+                      {renderFirstDisplay("digital wallet")}
+                    </View>
+                  </>
+                )}
 
-              {!isEmpty(isCard) && (
-                <>
-                  <Text style={styles.typeText}>Card Payment</Text>
-                  <View style={styles.paymentBoxWrapper}>
-                    {renderFirstDisplay("card")}
-                  </View>
-                </>
-              )}
+                {!isEmpty(isCard) && (
+                  <>
+                    <Text style={styles.typeText}>Card Payment</Text>
+                    <View style={styles.paymentBoxWrapper}>
+                      {renderFirstDisplay("card")}
+                    </View>
+                  </>
+                )}
 
-              {!isEmpty(isBank) && (
-                <>
-                  <Text style={styles.typeText}>Net Banking</Text>
-                  <View style={styles.paymentBoxWrapper}>
-                    {renderFirstDisplay("bank")}
-                  </View>
-                </>
-              )}
-            </ScrollView>
-          ) : (
-            <View style={{ paddingHorizontal: 10 }}>
-              {hideArrow !== "top" && (
-                <>
-                  <LinearGradient
-                    colors={[
-                      "rgba(0,0,0,0.09)",
-                      "rgba(0,0,0,0.07)",
-                      "rgba(0,0,0,0.05)",
-                      "rgba(0,0,0,0.03)",
-                      "rgba(0,0,0,0.01)",
-                    ]}
-                    style={{
-                      position: "absolute",
-                      left: 10,
-                      height: "100%",
-                      width: 10,
-                      zIndex: 1,
-                    }}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  />
-                  <MaterialIcons
-                    name="keyboard-arrow-left"
-                    style={{
-                      position: "absolute",
-                      left: 6,
-                      top: "40%",
-                      height: "100%",
-                      // width: 10,
-                      zIndex: 4,
-                    }}
-                    size={20}
-                  />
-                </>
-              )}
-              <ScrollView
-                ref={horizontalScrollRef}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                horizontal={true}
-                showsHorizontalScrollIndicator={false}
-              >
-                {paymentMethod?.map((item, index) => {
-                  return (Platform.OS === "android" &&
-                    item["payment_method.payment_method"] === "Apple Pay") ||
-                    (Platform.OS === "ios" &&
-                      item["payment_method.payment_method"] ===
-                        "Google Pay") ? null : (
-                    <Animated.View
-                      entering={FadeInRight}
-                      exiting={FadeOutLeft}
-                      key={item?.id}
-                      activeOpacity={0.8}
-                    >
-                      <Card
-                        style={[
-                          styles.paymentSmallBox,
-                          {
-                            width: SMALL_BOX_WIDTH,
-                            minHeight:
-                              deviceHeight *
-                              (chargeData?.isPaymentGateWay ? 0.14 : 0.12),
-                            borderColor:
-                              isShow === index ? "#0068EF" : "#F8F8F8",
-                          },
-                          index === 0 && {
-                            marginLeft: 16,
-                          },
-                        ]}
+                {!isEmpty(isBank) && (
+                  <>
+                    <Text style={styles.typeText}>Net Banking</Text>
+                    <View style={styles.paymentBoxWrapper}>
+                      {renderFirstDisplay("bank")}
+                    </View>
+                  </>
+                )}
+              </ScrollView>
+            ) : (
+              <View style={{ paddingHorizontal: 10 }}>
+                {hideArrow !== "top" && (
+                  <>
+                    <LinearGradient
+                      colors={[
+                        "rgba(0,0,0,0.09)",
+                        "rgba(0,0,0,0.07)",
+                        "rgba(0,0,0,0.05)",
+                        "rgba(0,0,0,0.03)",
+                        "rgba(0,0,0,0.01)",
+                      ]}
+                      style={{
+                        position: "absolute",
+                        left: 10,
+                        height: "100%",
+                        width: 10,
+                        zIndex: 1,
+                      }}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <MaterialIcons
+                      name="keyboard-arrow-left"
+                      style={{
+                        position: "absolute",
+                        left: 6,
+                        top: "40%",
+                        height: "100%",
+                        // width: 10,
+                        zIndex: 4,
+                      }}
+                      size={20}
+                    />
+                  </>
+                )}
+                <ScrollView
+                  ref={horizontalScrollRef}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {paymentMethod?.map((item, index) => {
+                    return (Platform.OS === "android" &&
+                      item["payment_method.payment_method"] === "Apple Pay") ||
+                      (Platform.OS === "ios" &&
+                        item["payment_method.payment_method"] ===
+                          "Google Pay") ? null : (
+                      <Animated.View
+                        entering={FadeInRight}
+                        exiting={FadeOutLeft}
+                        key={item?.id}
+                        activeOpacity={0.8}
                       >
-                        <TouchableOpacity
-                          onLongPress={() => {
-                            if (
-                              item["payment_method.payment_method"] === "ACH"
-                            ) {
-                              setLongPressData(
-                                item?.charge_object?.charges_obj
-                              );
-                              // bottomSheetRef?.current?.present();
-                              bottomSheetRef?.current?.open();
-                            }
-                          }}
-                          onPress={() => {
-                            setTabSelected({});
-                            setisShow(index);
-                            setShowCustom("");
-                            setCardBrandSelect(null);
-                            setPaymentType([]);
-                            if (
-                              paymentMethod[index][
-                                "payment_method.payment_method"
-                              ] === "UPI"
-                            ) {
-                              SaveOrder(paymentMethod[index], "saveO");
+                        <Card
+                          style={[
+                            styles.paymentSmallBox,
+                            {
+                              width: SMALL_BOX_WIDTH,
+                              minHeight:
+                                deviceHeight *
+                                (chargeData?.isPaymentGateWay ? 0.14 : 0.12),
+                              borderColor:
+                                isShow === index ? "#0068EF" : "#F8F8F8",
+                            },
+                            index === 0 && {
+                              marginLeft: 16,
+                            },
+                          ]}
+                        >
+                          <TouchableOpacity
+                            onLongPress={() => {
+                              if (
+                                item["payment_method.payment_method"] === "ACH"
+                              ) {
+                                setLongPressData(
+                                  item?.charge_object?.charges_obj
+                                );
+                                // bottomSheetRef?.current?.present();
+                                bottomSheetRef?.current?.open();
+                              }
+                            }}
+                            onPress={() => {
+                              setTabSelected({});
+                              setisShow(index);
+                              setShowCustom("");
+                              setCardBrandSelect(null);
                               setPaymentType([]);
-                            } else if (
-                              paymentMethod[index][
-                                "payment_method.payment_method"
-                              ] === "Apple Pay"
-                            ) {
-                              isApplePaySupported
-                                ? SaveOrder(paymentMethod[index], "aPay")
-                                : Alert.alert(
-                                    "",
-                                    "Apple Pay is not supported on this device."
-                                  );
-                            } else if (
-                              paymentMethod[index][
-                                "payment_method.payment_method"
-                              ] === "Google Pay"
-                            ) {
-                              SaveOrder(paymentMethod[index], "gPay");
-                            } else {
-                              item["payment_method.payment_method"] === "ACH"
-                                ? getPaymentOption()
-                                : getPaymentOption(
-                                    paymentMethod[index]?.payment_method_id,
-                                    index
-                                  );
-                            }
+                              if (
+                                paymentMethod[index][
+                                  "payment_method.payment_method"
+                                ] === "UPI"
+                              ) {
+                                SaveOrder(paymentMethod[index], "saveO");
+                                setPaymentType([]);
+                              } else if (
+                                paymentMethod[index][
+                                  "payment_method.payment_method"
+                                ] === "Apple Pay"
+                              ) {
+                                isApplePaySupported
+                                  ? SaveOrder(paymentMethod[index], "aPay")
+                                  : Alert.alert(
+                                      "",
+                                      "Apple Pay is not supported on this device."
+                                    );
+                              } else if (
+                                paymentMethod[index][
+                                  "payment_method.payment_method"
+                                ] === "Google Pay"
+                              ) {
+                                SaveOrder(paymentMethod[index], "gPay");
+                              } else {
+                                item["payment_method.payment_method"] === "ACH"
+                                  ? getPaymentOption()
+                                  : getPaymentOption(
+                                      paymentMethod[index]?.payment_method_id,
+                                      index
+                                    );
+                              }
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: item["payment_method.logo"],
+                              }}
+                              style={styles.paymentSBImage}
+                              resizeMode="contain"
+                              alt={item["payment_method.payment_method"]}
+                            />
+                            <Text
+                              style={[
+                                styles.paymentSBTitle,
+                                {
+                                  color: isShow === index ? "#0068EF" : "#000",
+                                },
+                              ]}
+                            >
+                              {item["payment_method.payment_method"]}
+                            </Text>
+                            {chargeData?.isPaymentGateWay && !noCharge && (
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  textAlign: "center",
+                                  paddingHorizontal: 2,
+                                  color:
+                                    isShow === index ? "#0068EF" : "#AAAAAA",
+                                }}
+                              >
+                                {`Starts @${
+                                  Number(
+                                    item?.charge_object?.charges_obj
+                                      ?.transaction_per || 0
+                                  ) +
+                                  Number(
+                                    item?.charge_object?.charges_obj
+                                      ?.currency_conversion_percentage || 0
+                                  ) +
+                                  Number(
+                                    item?.charge_object?.charges_obj
+                                      ?.international_charge_percentage || 0
+                                  )
+                                }% fee`}{" "}
+                                {item?.charge_object?.charges_obj
+                                  ?.fixed_fee_amount &&
+                                  `+ ${currency_symbol[paymentData?.currency]}${
+                                    item?.charge_object?.charges_obj
+                                      ?.fixed_fee_amount || ""
+                                  }`}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        </Card>
+                      </Animated.View>
+                    );
+                  })}
+                </ScrollView>
+                {hideArrow !== "bottom" && (
+                  <>
+                    <LinearGradient
+                      colors={[
+                        "rgba(0,0,0,0.09)",
+                        "rgba(0,0,0,0.07)",
+                        "rgba(0,0,0,0.05)",
+                        "rgba(0,0,0,0.03)",
+                        "rgba(0,0,0,0.01)",
+                      ]}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        height: "100%",
+                        width: 10,
+                        zIndex: 4,
+                      }}
+                      start={{ x: 1, y: 0 }}
+                      end={{ x: 0, y: 0 }}
+                    />
+                    <MaterialIcons
+                      name="keyboard-arrow-right"
+                      style={{
+                        position: "absolute",
+                        right: 6,
+                        top: "40%",
+                        height: "100%",
+                        // width: 10,
+                        zIndex: 4,
+                      }}
+                      size={20}
+                    />
+                  </>
+                )}
+              </View>
+            )
+          ) : (
+            <View
+              style={{
+                height: "100%",
+                width: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: 20, fontWeight: "bold" }}>No Data</Text>
+            </View>
+          )}
+        </View>
+
+        {contentLoade ? (
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator size={"large"} animating color={"#0068EF"} />
+          </View>
+        ) : isArray(paymentType) &&
+          !isEmpty(paymentType) &&
+          !isEmpty(isShow?.toString()) &&
+          paymentMethod[isShow]["payment_method.payment_method"] !==
+            "Net Banking" &&
+          paymentMethod[isShow]["payment_method.payment_method"] !== "Wallet" &&
+          paymentMethod[isShow]["payment_method.payment_method"] !== "ACH" ? (
+          // tabSwitch
+          <TabSwitch
+            {...props}
+            onLongPress={(data) => {
+              setLongPressData(data);
+              // bottomSheetRef.current?.present();
+              bottomSheetRef.current?.open();
+            }}
+            tabs={paymentType}
+            activeTab={tabSelected}
+            chargeData={chargeData}
+            subTabSize={
+              deviceWidth * (chargeData?.isPaymentGateWay ? 0.35 : 0.3)
+            }
+            onTabChange={(currentTab) => {
+              setTabSelected(currentTab);
+              customCardRef?.current?.resetData();
+            }}
+          />
+        ) : isEmpty(showCustom) &&
+          !isEmpty(isShow.toString()) &&
+          paymentMethod[isShow]["payment_method.payment_method"] !== "ACH" ? (
+          <Animated.View
+            entering={FadeIn}
+            exiting={FadeOut}
+            style={{
+              flex: 1,
+            }}
+          >
+            {(paymentMethod[isShow]["payment_method.payment_method"] ===
+              "Net Banking" ||
+              paymentMethod[isShow]["payment_method.payment_method"] ===
+                "Wallet") && (
+              <Text
+                style={{
+                  marginHorizontal: 10,
+                  paddingVertical: 15,
+                  color: BaseColors.textColor,
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
+              >
+                {paymentMethod[isShow]["payment_method.payment_method"] ===
+                "Net Banking"
+                  ? "All Banks"
+                  : "Wallets"}
+              </Text>
+            )}
+
+            <View
+              style={{
+                flexGrow: 1,
+                paddingBottom: 30,
+              }}
+            >
+              <FlatList
+                showsVerticalScrollIndicator={false}
+                data={paymentType}
+                renderItem={({ item, index }) => {
+                  return (
+                    <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginVertical: 7,
+                          paddingHorizontal: 10,
+                        }}
+                        onPress={() => {
+                          setTabSelected(item);
+                        }}
+                      >
+                        <View
+                          style={{
+                            borderWidth: 1,
+                            borderColor: BaseColors.black20,
+                            height: 30,
+                            width: 40,
+                            borderRadius: 5,
+                            overflow: "hidden",
                           }}
                         >
                           <Image
                             source={{
-                              uri: item["payment_method.logo"],
+                              uri: item["payment_sub_method.logo"],
                             }}
-                            style={styles.paymentSBImage}
                             resizeMode="contain"
-                            alt={item["payment_method.payment_method"]}
+                            style={{
+                              height: 30,
+                              width: 40,
+                            }}
                           />
-                          <Text
-                            style={[
-                              styles.paymentSBTitle,
-                              { color: isShow === index ? "#0068EF" : "#000" },
-                            ]}
-                          >
-                            {item["payment_method.payment_method"]}
-                          </Text>
-                          {chargeData?.isPaymentGateWay && !noCharge && (
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                textAlign: "center",
-                                paddingHorizontal: 2,
-                                color: isShow === index ? "#0068EF" : "#AAAAAA",
-                              }}
-                            >
-                              {`Starts @${
-                                Number(
-                                  item?.charge_object?.charges_obj
-                                    ?.transaction_per || 0
-                                ) +
-                                Number(
-                                  item?.charge_object?.charges_obj
-                                    ?.currency_conversion_percentage || 0
-                                ) +
-                                Number(
-                                  item?.charge_object?.charges_obj
-                                    ?.international_charge_percentage || 0
-                                )
-                              }% fee`}{" "}
-                              {item?.charge_object?.charges_obj
-                                ?.fixed_fee_amount &&
-                                `+ ${currency_symbol[paymentData?.currency]}${
-                                  item?.charge_object?.charges_obj
-                                    ?.fixed_fee_amount || ""
-                                }`}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                      </Card>
+                        </View>
+
+                        <Text
+                          style={{
+                            flex: 1,
+                            marginHorizontal: 10,
+                            color: BaseColors.textColor,
+                            fontWeight: "600",
+                          }}
+                          numberOfLines={2}
+                        >
+                          {item["payment_sub_method.type"]}
+                        </Text>
+
+                        <MaterialIcons
+                          name="chevron-right"
+                          size={20}
+                          color={BaseColors.black20}
+                        />
+                      </TouchableOpacity>
                     </Animated.View>
                   );
-                })}
-              </ScrollView>
-              {hideArrow !== "bottom" && (
-                <>
-                  <LinearGradient
-                    colors={[
-                      "rgba(0,0,0,0.09)",
-                      "rgba(0,0,0,0.07)",
-                      "rgba(0,0,0,0.05)",
-                      "rgba(0,0,0,0.03)",
-                      "rgba(0,0,0,0.01)",
-                    ]}
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      height: "100%",
-                      width: 10,
-                      zIndex: 4,
-                    }}
-                    start={{ x: 1, y: 0 }}
-                    end={{ x: 0, y: 0 }}
-                  />
-                  <MaterialIcons
-                    name="keyboard-arrow-right"
-                    style={{
-                      position: "absolute",
-                      right: 6,
-                      top: "40%",
-                      height: "100%",
-                      // width: 10,
-                      zIndex: 4,
-                    }}
-                    size={20}
-                  />
-                </>
-              )}
+                }}
+              />
             </View>
-          )
-        ) : (
-          <View
-            style={{
-              height: "100%",
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>No Data</Text>
-          </View>
-        )}
-      </View>
+          </Animated.View>
+        ) : null}
 
-      {contentLoade ? (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-          }}
-        >
-          <ActivityIndicator size={"large"} animating color={"#0068EF"} />
-        </View>
-      ) : isArray(paymentType) &&
-        !isEmpty(paymentType) &&
-        !isEmpty(isShow?.toString()) &&
+        {!isEmpty(isShow.toString()) &&
         paymentMethod[isShow]["payment_method.payment_method"] !==
           "Net Banking" &&
         paymentMethod[isShow]["payment_method.payment_method"] !== "Wallet" &&
         paymentMethod[isShow]["payment_method.payment_method"] !== "ACH" ? (
-        // tabSwitch
-        <TabSwitch
-          {...props}
-          onLongPress={(data) => {
-            setLongPressData(data);
-            // bottomSheetRef.current?.present();
-            bottomSheetRef.current?.open();
-          }}
-          tabs={paymentType}
-          activeTab={tabSelected}
-          chargeData={chargeData}
-          subTabSize={deviceWidth * (chargeData?.isPaymentGateWay ? 0.35 : 0.3)}
-          onTabChange={(currentTab) => {
-            setTabSelected(currentTab);
-            customCardRef?.current?.resetData();
-          }}
-        />
-      ) : isEmpty(showCustom) &&
-        !isEmpty(isShow.toString()) &&
-        paymentMethod[isShow]["payment_method.payment_method"] !== "ACH" ? (
-        <Animated.View
-          entering={FadeIn}
-          exiting={FadeOut}
-          style={{
-            flex: 1,
-          }}
-        >
-          {(paymentMethod[isShow]["payment_method.payment_method"] ===
-            "Net Banking" ||
-            paymentMethod[isShow]["payment_method.payment_method"] ===
-              "Wallet") && (
-            <Text
+          <ScrollView>
+            <View
               style={{
-                marginHorizontal: 10,
-                paddingVertical: 15,
-                color: BaseColors.textColor,
-                fontWeight: "600",
-                fontSize: 16,
+                flex: 1,
+                marginTop: 10,
+                paddingHorizontal: showCustom === "custom" ? 10 : 0,
               }}
             >
-              {paymentMethod[isShow]["payment_method.payment_method"] ===
-              "Net Banking"
-                ? "All Banks"
-                : "Wallets"}
-            </Text>
-          )}
+              {subLoader ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                  }}
+                >
+                  <ActivityIndicator
+                    size={"large"}
+                    animating
+                    color={"#0068EF"}
+                  />
+                </View>
+              ) : showCustom === "custom" ? (
+                <CustomCard
+                  {...props}
+                  ref={customCardRef}
+                  cardBrandSelect={cardBrandSelect}
+                  paymentData={paymentData}
+                  onPaymentDone={onPaymentDone}
+                  setPaySuccess={setPaySuccess}
+                  liveUrl={liveUrl}
+                  chargeData={chargeData}
+                />
+              ) : showCustom === "url" ? (
+                <View
+                  style={{
+                    flex: 1,
+                    width: "100%",
+                  }}
+                >
+                  <WebView
+                    ref={webviewRef}
+                    source={{
+                      uri: url ? url : "",
+                    }}
+                    setSupportMultipleWindows={false}
+                    style={[
+                      {
+                        height: deviceHeight,
+                        width: deviceWidth,
+                      },
+                      webViewStyles,
+                    ]}
+                    javaScriptEnabled
+                    injectedJavaScript={`(function() {
+window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
+})();`}
+                    injectedJavaScriptForMainFrameOnly
+                    originWhitelist={["*"]}
+                    startInLoadingState
+                    scrollEnabled
+                    bounces={false}
+                    onMessage={(event) => {
+                      if (!isNull(event?.nativeEvent)) {
+                        const data = JSON.parse(event?.nativeEvent?.data);
+                        !isEmpty(data) && data === "close" && onPaymentDone();
+                      }
+                    }}
+                    scalesPageToFit={false}
+                    onNavigationStateChange={(navState) => {
+                      if (navState?.url === "about:blank") {
+                        return false;
+                      } else {
+                        const temp1 = navState?.url.split("/");
+                        if (_.isArray(temp1)) {
+                          const orderID = temp1[temp1?.length - 1]
+                            ? temp1[temp1?.length - 1]
+                            : "";
+                          if (
+                            temp1[temp1?.length - 2] == "success" ||
+                            temp1[temp1?.length - 2] == "fail"
+                          ) {
+                            onPaymentDone();
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </View>
+              ) : null}
+            </View>
+          </ScrollView>
+        ) : (
+          !contentLoade &&
+          !isEmpty(isShow.toString()) &&
+          paymentMethod[isShow]["payment_method.payment_method"] === "ACH" && (
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+              <ScrollView
+                style={{ padding: 10 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <DForm
+                  {...props}
+                  PayObj={paymentMethod[isShow]}
+                  paymentData={paymentData}
+                  liveUrl={liveUrl}
+                  setURL={setURL}
+                  setShowCustom={setShowCustom}
+                  onPaymentDone={onPaymentDone}
+                  setPaySuccess={setPaySuccess}
+                  chargeData={chargeData}
+                />
+              </ScrollView>
+            </KeyboardAvoidingView>
+          )
+        )}
 
-          <View
+        <View
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "row",
+          }}
+        >
+          <Text
             style={{
-              flexGrow: 1,
-              paddingBottom: 30,
+              fontSize: 16,
+              fontWeight: "bold",
+              color: BaseColors.greyTxt,
+              marginRight: 4,
             }}
           >
-            <FlatList
-              showsVerticalScrollIndicator={false}
-              data={paymentType}
-              renderItem={({ item, index }) => {
-                return (
-                  <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginVertical: 7,
-                        paddingHorizontal: 10,
-                      }}
-                      onPress={() => {
-                        setTabSelected(item);
-                      }}
-                    >
-                      <View
-                        style={{
-                          borderWidth: 1,
-                          borderColor: BaseColors.black20,
-                          height: 30,
-                          width: 40,
-                          borderRadius: 5,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: item["payment_sub_method.logo"],
-                          }}
-                          resizeMode="contain"
-                          style={{
-                            height: 30,
-                            width: 40,
-                          }}
-                        />
-                      </View>
+            Powerd by
+          </Text>
 
-                      <Text
-                        style={{
-                          flex: 1,
-                          marginHorizontal: 10,
-                          color: BaseColors.textColor,
-                          fontWeight: "600",
-                        }}
-                        numberOfLines={2}
-                      >
-                        {item["payment_sub_method.type"]}
-                      </Text>
-
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={20}
-                        color={BaseColors.black20}
-                      />
-                    </TouchableOpacity>
-                  </Animated.View>
-                );
-              }}
-            />
-          </View>
-        </Animated.View>
-      ) : null}
-
-      {!isEmpty(isShow.toString()) &&
-      paymentMethod[isShow]["payment_method.payment_method"] !==
-        "Net Banking" &&
-      paymentMethod[isShow]["payment_method.payment_method"] !== "Wallet" &&
-      paymentMethod[isShow]["payment_method.payment_method"] !== "ACH" ? (
-        <ScrollView>
+          <Image
+            resizeMode="contain"
+            alt="Aauti"
+            source={require("../Images/aautiPA.png")}
+            style={{
+              width: 60,
+              height: 60,
+            }}
+          />
+        </View>
+        <RBSheet
+          ref={bottomSheetRef}
+          closeOnDragDown={true}
+          closeOnPressMask={false}
+          height={deviceHeight * 0.65}
+          openDuration={250}
+          customStyles={{
+            wrapper: {
+              backgroundColor: "transparent",
+            },
+            draggableIcon: {
+              backgroundColor: "#A4A4A4",
+            },
+            container: {
+              backgroundColor: "#E7EFFB",
+              borderTopLeftRadius: 25,
+              borderTopRightRadius: 25,
+            },
+          }}
+        >
           <View
             style={{
               flex: 1,
-              marginTop: 10,
-              paddingHorizontal: showCustom === "custom" ? 10 : 0,
+              paddingHorizontal: 20,
+              marginBottom: 20,
             }}
           >
-            {subLoader ? (
-              <View
+            <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
+              <TouchableOpacity
+                activeOpacity={1}
                 style={{
-                  flex: 1,
-                  justifyContent: "center",
+                  marginVertical: 8,
                 }}
               >
-                <ActivityIndicator size={"large"} animating color={"#0068EF"} />
-              </View>
-            ) : showCustom === "custom" ? (
-              <CustomCard
-                {...props}
-                ref={customCardRef}
-                cardBrandSelect={cardBrandSelect}
-                paymentData={paymentData}
-                onPaymentDone={onPaymentDone}
-                setPaySuccess={setPaySuccess}
-                liveUrl={liveUrl}
-                chargeData={chargeData}
-              />
-            ) : showCustom === "url" ? (
-              <View
-                style={{
-                  flex: 1,
-                  width: "100%",
-                }}
-              >
-                <WebView
-                  ref={webviewRef}
-                  source={{
-                    uri: url ? url : "",
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
                   }}
-                  setSupportMultipleWindows={false}
-                  style={[
-                    {
-                      height: deviceHeight,
-                      width: deviceWidth,
-                    },
-                    webViewStyles,
-                  ]}
-                  javaScriptEnabled
-                  injectedJavaScript={`(function() {
-window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
-})();`}
-                  injectedJavaScriptForMainFrameOnly
-                  originWhitelist={["*"]}
-                  startInLoadingState
-                  scrollEnabled
-                  bounces={false}
-                  onMessage={(event) => {
-                    if (!isNull(event?.nativeEvent)) {
-                      const data = JSON.parse(event?.nativeEvent?.data);
-                      !isEmpty(data) && data === "close" && onPaymentDone();
-                    }
-                  }}
-                  scalesPageToFit={false}
-                  onNavigationStateChange={(navState) => {
-                    if (navState?.url === "about:blank") {
-                      return false;
-                    } else {
-                      const temp1 = navState?.url.split("/");
-                      if (_.isArray(temp1)) {
-                        const orderID = temp1[temp1?.length - 1]
-                          ? temp1[temp1?.length - 1]
-                          : "";
-                        if (
-                          temp1[temp1?.length - 2] == "success" ||
-                          temp1[temp1?.length - 2] == "fail"
-                        ) {
-                          onPaymentDone();
-                        }
-                      }
-                    }
-                  }}
-                />
-              </View>
-            ) : null}
-          </View>
-        </ScrollView>
-      ) : (
-        !contentLoade &&
-        !isEmpty(isShow.toString()) &&
-        paymentMethod[isShow]["payment_method.payment_method"] === "ACH" && (
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-            <ScrollView
-              style={{ padding: 10 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <DForm
-                {...props}
-                PayObj={paymentMethod[isShow]}
-                paymentData={paymentData}
-                liveUrl={liveUrl}
-                setURL={setURL}
-                setShowCustom={setShowCustom}
-                onPaymentDone={onPaymentDone}
-                setPaySuccess={setPaySuccess}
-                chargeData={chargeData}
-              />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        )
-      )}
+                >
+                  <Image
+                    source={{
+                      uri:
+                        longPressData?.gateway_name === "stripe"
+                          ? "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png"
+                          : longPressData?.gateway_name === "authorize_net"
+                          ? "https://upload.wikimedia.org/wikipedia/commons/1/16/Authorize.net_logo.png"
+                          : longPressData?.gateway_name === "braintree"
+                          ? "https://www.appvizer.com/media/application/439/cover/987/cover-braintree"
+                          : longPressData?.gateway_name === "paypal"
+                          ? "https://pngimg.com/uploads/paypal/paypal_PNG22.png"
+                          : longPressData?.gateway_name === "razorpay"
+                          ? "https://assets.stickpng.com/images/62cc1dab150d5de9a3dad5fb.png"
+                          : "https://pngimg.com/uploads/paypal/paypal_PNG22.png",
+                    }}
+                    resizeMode="contain"
+                    style={{
+                      height: 30,
+                      width: 40,
+                    }}
+                  />
 
-      <View
-        style={{
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "row",
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "bold",
-            color: BaseColors.greyTxt,
-            marginRight: 4,
-          }}
-        >
-          Powerd by
-        </Text>
-
-        <Image
-          resizeMode="contain"
-          alt="Aauti"
-          source={require("../Images/aautiPA.png")}
-          style={{
-            width: 60,
-            height: 60,
-          }}
-        />
-      </View>
-      <RBSheet
-        ref={bottomSheetRef}
-        closeOnDragDown={true}
-        closeOnPressMask={false}
-        height={deviceHeight * 0.65}
-        openDuration={250}
-        customStyles={{
-          wrapper: {
-            backgroundColor: "transparent",
-          },
-          draggableIcon: {
-            backgroundColor: "#A4A4A4",
-          },
-          container: {
-            backgroundColor: "#E7EFFB",
-            borderTopLeftRadius: 25,
-            borderTopRightRadius: 25,
-          },
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: 20,
-            marginBottom: 20,
-          }}
-        >
-          <Animated.View entering={FadeInDown} exiting={FadeOutUp}>
-            <TouchableOpacity
-              activeOpacity={1}
-              style={{
-                marginVertical: 8,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <Image
-                  source={{
-                    uri:
-                      longPressData?.gateway_name === "stripe"
-                        ? "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png"
-                        : longPressData?.gateway_name === "authorize_net"
-                        ? "https://upload.wikimedia.org/wikipedia/commons/1/16/Authorize.net_logo.png"
-                        : longPressData?.gateway_name === "braintree"
-                        ? "https://www.appvizer.com/media/application/439/cover/987/cover-braintree"
-                        : longPressData?.gateway_name === "paypal"
-                        ? "https://pngimg.com/uploads/paypal/paypal_PNG22.png"
-                        : longPressData?.gateway_name === "razorpay"
-                        ? "https://assets.stickpng.com/images/62cc1dab150d5de9a3dad5fb.png"
-                        : "https://pngimg.com/uploads/paypal/paypal_PNG22.png",
-                  }}
-                  resizeMode="contain"
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 16,
+                      color: "#000",
+                      fontWeight: "bold",
+                      textTransform: "capitalize",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {displayName}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    height: 30,
-                    width: 40,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                />
-
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 16,
-                    color: "#000",
-                    fontWeight: "bold",
-                    textTransform: "capitalize",
-                  }}
-                  numberOfLines={2}
                 >
-                  {displayName}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Amount:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {paymentData?.amount}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  Amount:
-                </Text>
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Transaction percentage:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {longPressData?.transaction_per || "0"}%
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  {currency_symbol[paymentData?.currency]}
-                  {paymentData?.amount}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Transaction Amount:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {longPressData?.transaction_amount || "0"}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  Transaction percentage:
-                </Text>
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Fixed fee:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {longPressData?.fixed_fee_amount || "0"}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  {longPressData?.transaction_per || "0"}%
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    International Transaction percentage:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {longPressData?.international_charge_percentage || "0"}%
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  Transaction Amount:
-                </Text>
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    International Transaction amount:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {longPressData?.international_charge_amount || "0"}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  {currency_symbol[paymentData?.currency]}
-                  {longPressData?.transaction_amount || "0"}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Tax percentage:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {longPressData?.tax_percentage_per || "0"}%
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  Fixed fee:
-                </Text>
-                <Text
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Tax amount:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#000",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {longPressData?.tax_percentage_amount || "0"}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                    justifyContent: "space-between",
                   }}
-                  numberOfLines={2}
                 >
-                  {currency_symbol[paymentData?.currency]}
-                  {longPressData?.fixed_fee_amount || "0"}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                  numberOfLines={2}
-                >
-                  International Transaction percentage:
-                </Text>
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {longPressData?.international_charge_percentage || "0"}%
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                  numberOfLines={2}
-                >
-                  International Transaction amount:
-                </Text>
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {currency_symbol[paymentData?.currency]}
-                  {longPressData?.international_charge_amount || "0"}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                  numberOfLines={2}
-                >
-                  Tax percentage:
-                </Text>
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {longPressData?.tax_percentage_per || "0"}%
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                  numberOfLines={2}
-                >
-                  Tax amount:
-                </Text>
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#000",
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {currency_symbol[paymentData?.currency]}
-                  {longPressData?.tax_percentage_amount || "0"}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#0068EF",
-                  }}
-                  numberOfLines={2}
-                >
-                  Final Amount:
-                </Text>
-                <Text
-                  style={{
-                    marginHorizontal: 6,
-                    fontSize: 14,
-                    color: "#0068EF",
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {currency_symbol[paymentData?.currency]}
-                  {longPressData?.final_amount}
-                </Text>
-              </View>
-              {/* {index !== longPressData.length - 1 && (
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#0068EF",
+                    }}
+                    numberOfLines={2}
+                  >
+                    Final Amount:
+                  </Text>
+                  <Text
+                    style={{
+                      marginHorizontal: 6,
+                      fontSize: 14,
+                      color: "#0068EF",
+                      fontWeight: "bold",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {currency_symbol[paymentData?.currency]}
+                    {longPressData?.final_amount}
+                  </Text>
+                </View>
+                {/* {index !== longPressData.length - 1 && (
                         <Text
                           ellipsizeMode="clip"
                           numberOfLines={1}
@@ -1606,10 +1621,11 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
                           - - - - - - - - - - - - - - - - - - - -
                         </Text>
                       )} */}
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </RBSheet>
-    </View>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </RBSheet>
+      </View>
+    </StripeProvider>
   );
 }
