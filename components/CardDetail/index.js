@@ -350,6 +350,7 @@ export default function CardDetail(props) {
           : "inclusive",
         base_amount: paymentData?.amount,
         charge_id: subData?.charge_object?.charges_obj?.id,
+        platform: "app",
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
@@ -791,7 +792,8 @@ export default function CardDetail(props) {
                       item["payment_method.payment_method"] === "Apple Pay") ||
                       (Platform.OS === "ios" &&
                         item["payment_method.payment_method"] ===
-                          "Google Pay") ? null : (
+                          "Google Pay") ||
+                      isEmpty(item?.charge_object) ? null : (
                       <Animated.View
                         entering={FadeInRight}
                         exiting={FadeOutLeft}
@@ -1245,7 +1247,7 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
               marginRight: 4,
             }}
           >
-            Powerd by
+            Powered by
           </Text>
 
           <Image

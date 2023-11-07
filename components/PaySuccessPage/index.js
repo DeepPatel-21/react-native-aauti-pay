@@ -81,7 +81,7 @@ const PaySuccess = ({ responseType, message }) => {
             marginRight: 4,
           }}
         >
-          Powerd by
+          Powered by
         </Text>
 
         <Image

@@ -251,6 +251,7 @@ const DForm = (props) => {
         email: paymentData?.email,
         base_amount: paymentData?.amount,
         charge_id: PayObj?.charge_object?.charges_obj?.id,
+        platform: "app",
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,

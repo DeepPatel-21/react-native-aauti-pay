@@ -301,6 +301,7 @@ function CustomCard(props, ref) {
         email: paymentData?.email,
         base_amount: paymentData?.amount,
         charge_id: cardBrandSelect?.charge_object?.charges_obj?.id,
+        platform: "app",
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
