@@ -87,9 +87,11 @@ const PaySuccess = ({ responseType, message }) => {
         <Image
           resizeMode="contain"
           alt="Aauti"
-          source={require("../Images/aautiPA.png")}
+          source={{
+            uri: "https://groovyspace.fra1.digitaloceanspaces.com/aauti/1699612506-image_2023_11_10T10_33_17_245Z.png",
+          }}
           style={{
-            width: 60,
+            width: 180,
             height: 60,
           }}
         />

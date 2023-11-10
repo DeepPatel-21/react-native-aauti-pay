@@ -33,6 +33,7 @@ const DForm = (props) => {
     themeColor,
     chargeData,
     noCharge,
+    changeBtnText,
   } = props;
   const [paymentObj, setPaymentObj] = useState({});
   const [btnLoader, setBtnLoader] = useState(false);
@@ -809,7 +810,7 @@ const DForm = (props) => {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {chargeData?.withoutChargeAmount}
+                {chargeData?.withoutChargeAmount?.toFixed(2)}
               </Text>
             </View>
 
@@ -848,7 +849,7 @@ const DForm = (props) => {
                       {currency_symbol[paymentData?.currency]}
                       {item?.slug === "payment_gateway_fee"
                         ? paymentGatwayFee
-                        : amountToAdd}
+                        : amountToAdd?.toFixed(2)}
                     </Text>
                   </View>
                 );
@@ -880,7 +881,7 @@ const DForm = (props) => {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {finalAmount}
+                {finalAmount?.toFixed(2)}
               </Text>
             </View>
           </>
@@ -890,7 +891,7 @@ const DForm = (props) => {
             {...props}
             loader={btnLoader}
             disabled={btnLoader}
-            buttonTitle={`Pay ${
+            buttonTitle={`${changeBtnText} ${
               currency_symbol[paymentData?.currency]
             }${finalAmount}`}
             onButtonClick={() => Validation()}

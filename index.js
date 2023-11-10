@@ -61,6 +61,7 @@ const PaymentAgreegator = (props) => {
     mainButtonContainerStyle = {},
     loader = false,
     buttonTextStyle = {},
+    changeBtnText = "Pay",
 
     // For gradient
     isGradientButton = false,
@@ -491,7 +492,11 @@ const PaymentAgreegator = (props) => {
               >
                 {/* <CardDetails /> */}
                 {paySuccess ? (
-                  <PaySuccess responseType={paySuccess} message={failMessage} />
+                  <PaySuccess
+                    {...props}
+                    responseType={paySuccess}
+                    message={failMessage}
+                  />
                 ) : (
                   <>
                     {pageLoade ? (
@@ -602,6 +607,7 @@ PaymentAgreegator.propTypes = {
   merchantIdentifier: PropTypes.string,
   appCharges: PropTypes.array,
   pluginURL: PropTypes.string,
+  changeBtnText: PropTypes.string,
 };
 
 PaymentAgreegator.defaultProps = {
@@ -616,6 +622,7 @@ PaymentAgreegator.defaultProps = {
   merchantIdentifier: "merchant.com.app.saayampayment",
   appCharges: [],
   pluginURL: "staging",
+  changeBtnText: "Pay",
 };
 
 export default PaymentAgreegator;

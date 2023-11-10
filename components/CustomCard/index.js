@@ -41,6 +41,7 @@ function CustomCard(props, ref) {
     themeColor,
     chargeData,
     noCharge,
+    changeBtnText,
   } = props;
 
   let bytes = CryptoJS.AES.decrypt(
@@ -1443,7 +1444,7 @@ function CustomCard(props, ref) {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {chargeData?.withoutChargeAmount}
+                {chargeData?.withoutChargeAmount?.toFixed(2)}
               </Text>
             </View>
 
@@ -1481,7 +1482,7 @@ function CustomCard(props, ref) {
                       {currency_symbol[paymentData?.currency]}
                       {item?.slug === "payment_gateway_fee"
                         ? paymentGatwayFee
-                        : amountToAdd}
+                        : amountToAdd?.toFixed(2)}
                     </Text>
                   </View>
                 );
@@ -1513,7 +1514,7 @@ function CustomCard(props, ref) {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {finalAmount}
+                {finalAmount?.toFixed(2)}
               </Text>
             </View>
           </>
@@ -1523,7 +1524,7 @@ function CustomCard(props, ref) {
             {...props}
             loader={BtnLoader}
             disabled={isDisable || BtnLoader}
-            buttonTitle={`Pay ${
+            buttonTitle={`${changeBtnText} ${
               currency_symbol[paymentData?.currency]
             }${finalAmount}`}
             onButtonClick={() => {

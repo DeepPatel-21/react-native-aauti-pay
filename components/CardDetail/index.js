@@ -20,7 +20,6 @@ import { BaseColors } from "../theme";
 import TabSwitch from "../TabSwitch";
 import CustomCard from "../CustomCard";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { WebView } from "react-native-webview";
 import { getApiDataProgressPayment } from "../APIHelper";
 import InAppBrowser from "react-native-inappbrowser-reborn";
 import styles from "./style";
@@ -51,7 +50,6 @@ export default function CardDetail(props) {
     onPaymentDone,
     paymentData,
     paymentMethod,
-    webViewStyles,
     liveUrl,
     injectedMessage,
     setPaySuccess,
@@ -65,7 +63,6 @@ export default function CardDetail(props) {
 
   const deviceHeight = Dimensions.get("screen").height;
   const deviceWidth = Dimensions.get("screen").width;
-  const webviewRef = useRef(null);
   const customCardRef = useRef(null);
   const bottomSheetRef = useRef(null);
   const horizontalScrollRef = useRef(null);
@@ -81,11 +78,11 @@ export default function CardDetail(props) {
   const displayName = longPressData?.gateway_name?.replaceAll("_", " ");
 
   const [paymentType, setPaymentType] = useState([]);
-  const [url, setURL] = useState("");
   const [isApplePaySupported, setIsApplePaySupported] = useState(false);
 
   const [hideArrow, setHideArrow] = useState("top");
-
+  const [layoutWidth, setLayoutWidth] = useState("");
+  const [isScrollable, setIsScrollable] = useState(true);
   const SMALL_BOX_WIDTH = 120;
   const IOS = Platform.OS === "ios";
 
@@ -503,7 +500,7 @@ export default function CardDetail(props) {
 
     const amountObj = {
       label: "Amount",
-      amount: chargeData?.withoutChargeAmount?.toString(),
+      amount: Number(chargeData?.withoutChargeAmount?.toFixed(2))?.toString(),
       paymentType: PlatformPay.PaymentType.Immediate,
     };
     !noCharge && newArr.push(amountObj);
@@ -518,8 +515,8 @@ export default function CardDetail(props) {
         label: item1?.name,
         amount:
           item1?.slug === "payment_gateway_fee"
-            ? paymentGatwayFee?.toString()
-            : amountToAdd?.toString(),
+            ? Number(paymentGatwayFee)?.toFixed(2)?.toString()
+            : Number(amountToAdd)?.toFixed(2)?.toString(),
         paymentType: PlatformPay.PaymentType.Immediate,
       };
       !noCharge && newArr.push(newObj);
@@ -746,7 +743,7 @@ export default function CardDetail(props) {
               </ScrollView>
             ) : (
               <View style={{ paddingHorizontal: 10 }}>
-                {hideArrow !== "top" && (
+                {hideArrow !== "top" && isScrollable && (
                   <>
                     <LinearGradient
                       colors={[
@@ -786,6 +783,13 @@ export default function CardDetail(props) {
                   scrollEventThrottle={16}
                   horizontal={true}
                   showsHorizontalScrollIndicator={false}
+                  onLayout={(event) => {
+                    const width = event.nativeEvent.layout?.width;
+                    setLayoutWidth(width);
+                  }}
+                  onContentSizeChange={(contentWidth) => {
+                    setIsScrollable(contentWidth > layoutWidth);
+                  }}
                 >
                   {paymentMethod?.map((item, index) => {
                     return (Platform.OS === "android" &&
@@ -924,7 +928,7 @@ export default function CardDetail(props) {
                     );
                   })}
                 </ScrollView>
-                {hideArrow !== "bottom" && (
+                {hideArrow !== "bottom" && isScrollable && (
                   <>
                     <LinearGradient
                       colors={[
@@ -1148,62 +1152,6 @@ export default function CardDetail(props) {
                   liveUrl={liveUrl}
                   chargeData={chargeData}
                 />
-              ) : showCustom === "url" ? (
-                <View
-                  style={{
-                    flex: 1,
-                    width: "100%",
-                  }}
-                >
-                  <WebView
-                    ref={webviewRef}
-                    source={{
-                      uri: url ? url : "",
-                    }}
-                    setSupportMultipleWindows={false}
-                    style={[
-                      {
-                        height: deviceHeight,
-                        width: deviceWidth,
-                      },
-                      webViewStyles,
-                    ]}
-                    javaScriptEnabled
-                    injectedJavaScript={`(function() {
-window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
-})();`}
-                    injectedJavaScriptForMainFrameOnly
-                    originWhitelist={["*"]}
-                    startInLoadingState
-                    scrollEnabled
-                    bounces={false}
-                    onMessage={(event) => {
-                      if (!isNull(event?.nativeEvent)) {
-                        const data = JSON.parse(event?.nativeEvent?.data);
-                        !isEmpty(data) && data === "close" && onPaymentDone();
-                      }
-                    }}
-                    scalesPageToFit={false}
-                    onNavigationStateChange={(navState) => {
-                      if (navState?.url === "about:blank") {
-                        return false;
-                      } else {
-                        const temp1 = navState?.url.split("/");
-                        if (_.isArray(temp1)) {
-                          const orderID = temp1[temp1?.length - 1]
-                            ? temp1[temp1?.length - 1]
-                            : "";
-                          if (
-                            temp1[temp1?.length - 2] == "success" ||
-                            temp1[temp1?.length - 2] == "fail"
-                          ) {
-                            onPaymentDone();
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </View>
               ) : null}
             </View>
           </ScrollView>
@@ -1221,8 +1169,6 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
                   PayObj={paymentMethod[isShow]}
                   paymentData={paymentData}
                   liveUrl={liveUrl}
-                  setURL={setURL}
-                  setShowCustom={setShowCustom}
                   onPaymentDone={onPaymentDone}
                   setPaySuccess={setPaySuccess}
                   chargeData={chargeData}
@@ -1253,9 +1199,11 @@ window.ReactNativeWebView.postMessage(JSON.stringify('${injectedMessage}'));
           <Image
             resizeMode="contain"
             alt="Aauti"
-            source={require("../Images/aautiPA.png")}
+            source={{
+              uri: "https://groovyspace.fra1.digitaloceanspaces.com/aauti/1699612506-image_2023_11_10T10_33_17_245Z.png",
+            }}
             style={{
-              width: 60,
+              width: 180,
               height: 60,
             }}
           />
