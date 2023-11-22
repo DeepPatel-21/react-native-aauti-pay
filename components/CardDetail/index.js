@@ -279,7 +279,7 @@ export default function CardDetail(props) {
           });
           if (result?.type === "cancel") {
             setTabSelected({});
-            setPaySuccess("fail");
+            setPaySuccess("fail", "Authentication failed");
             setTimeout(() => {
               setPaySuccess(false);
             }, 5000);
@@ -394,7 +394,7 @@ export default function CardDetail(props) {
           response?.message || "Please try again. Something got wrong."
         );
 
-        setPaySuccess("fail");
+        setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
         }, 2000);
@@ -662,11 +662,12 @@ export default function CardDetail(props) {
                               ?.international_charge_percentage || 0
                           )
                         }% fee`}{" "}
-                        {item?.charge_object?.charges_obj?.fixed_fee_amount &&
-                          `+ ${currency_symbol[paymentData?.currency]}${
-                            item?.charge_object?.charges_obj
-                              ?.fixed_fee_amount || ""
-                          }`}
+                        {item?.charge_object?.charges_obj?.fixed_fee_amount
+                          ? `+ ${currency_symbol[paymentData?.currency]}${
+                              item?.charge_object?.charges_obj
+                                ?.fixed_fee_amount || ""
+                            }`
+                          : ""}
                       </Text>
                     )}
                   </View>
@@ -915,11 +916,14 @@ export default function CardDetail(props) {
                                   )
                                 }% fee`}{" "}
                                 {item?.charge_object?.charges_obj
-                                  ?.fixed_fee_amount &&
-                                  `+ ${currency_symbol[paymentData?.currency]}${
-                                    item?.charge_object?.charges_obj
-                                      ?.fixed_fee_amount || ""
-                                  }`}
+                                  ?.fixed_fee_amount
+                                  ? `+ ${
+                                      currency_symbol[paymentData?.currency]
+                                    }${
+                                      item?.charge_object?.charges_obj
+                                        ?.fixed_fee_amount || ""
+                                    }`
+                                  : ""}
                               </Text>
                             )}
                           </TouchableOpacity>

@@ -72,7 +72,7 @@ const PaymentAgreegator = (props) => {
   } = props;
 
   const liveUrl = `https://${pluginURL}.aautipay.com/plugin/`;
-  // const liveUrl = 'http://192.168.0.125:3000/plugin/';
+  // const liveUrl = 'http://192.168.0.126:3000/plugin/';
 
   const [webViewState, setWebViewState] = useState({
     modalBool: false,
@@ -115,7 +115,7 @@ const PaymentAgreegator = (props) => {
         onPaymentDone();
         // Close the InAppBrowser
       } else if (url.includes("failure")) {
-        setPaySuccess("fail");
+        setPaySuccess("fail", "Authentication failed");
         setTimeout(() => {
           setPaySuccess(false);
         }, 5000);

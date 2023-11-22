@@ -27,6 +27,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import axios from "axios";
 import Icon from "react-native-vector-icons/Octicons";
 import { TextInput } from "react-native-paper";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { currency_symbol } from "../staticData";
 import Cbutton from "../CButton";
 import InAppBrowser from "react-native-inappbrowser-reborn";
@@ -83,6 +84,7 @@ function CustomCard(props, ref) {
   const [BtnLoader, setBtnLoader] = useState(false);
 
   const [isShowBreackdown, setIsShowBreackdown] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   const [cardList, setCardList] = useState([]);
   const [cusMainID, setCusID] = useState("");
@@ -257,7 +259,7 @@ function CustomCard(props, ref) {
     })
       .then((response) => {
         if (!response.ok) {
-          setPaySuccess("fail");
+          setPaySuccess("fail", "Failed to create Stripe token");
           setTimeout(() => {
             setPaySuccess(false);
           }, 5000);
@@ -346,6 +348,7 @@ function CustomCard(props, ref) {
       data: ciphertext,
       order_code: code,
       is_new: isNew,
+      remember_me: checked ? 1 : 0,
     };
 
     try {
@@ -398,7 +401,7 @@ function CustomCard(props, ref) {
             },
           });
           if (result?.type === "cancel") {
-            setPaySuccess("fail");
+            setPaySuccess("fail", "Authentication failed");
             setTimeout(() => {
               setPaySuccess(false);
             }, 5000);
@@ -497,7 +500,7 @@ function CustomCard(props, ref) {
           );
         } else {
           console.log("Token not found in the XML.");
-          setPaySuccess("fail");
+          setPaySuccess("fail", "Token not found in the XML.");
           setTimeout(() => {
             setPaySuccess(false);
           }, 5000);
@@ -641,8 +644,8 @@ function CustomCard(props, ref) {
             experience_context: {
               brand_name: "Aautipay",
               locale: "en-US",
-              return_url: `${liveUrl}redirect-3ds?val=success&type=paypal`,
-              cancel_url: `${liveUrl}redirect-3ds?val=fail&type=paypal`,
+              return_url: `${liveUrl}redirect-3ds?val=success&gateway=paypal`,
+              cancel_url: `${liveUrl}redirect-3ds?val=fail&gateway=paypal`,
             },
           },
         },
@@ -773,7 +776,7 @@ function CustomCard(props, ref) {
           response?.message || "Please try again. Something got wrong."
         );
         setBtnLoader(false);
-        setPaySuccess("fail");
+        setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
         }, 5000);
@@ -1140,6 +1143,29 @@ function CustomCard(props, ref) {
       .catch((error) => console.error("Error:", error));
   }
 
+  async function RemoveSavedCard(confirmSaveType) {
+    try {
+      const data = {
+        customer_id: cusMainID,
+        token: confirmSaveType?.token,
+      };
+
+      const response = await getApiDataProgressPayment(
+        `${liveUrl}delete-user-card/${confirmSaveType?.id}`,
+        "POST",
+        JSON.stringify(data),
+        chargeData?.auth_token
+      );
+      if (response?.status == false) {
+        Alert.alert("Error", response?.message || "Something got wrong.");
+      } else {
+        getCardList();
+      }
+    } catch (error) {
+      console.log("error:", error);
+    }
+  }
+
   return mainLoader ? (
     <View
       style={{
@@ -1160,95 +1186,135 @@ function CustomCard(props, ref) {
         !isEmpty(cardList) &&
         cardList?.map((item, index) => {
           return (
-            <TouchableOpacity
-              key={index}
-              activeOpacity={0.7}
-              style={{
-                borderWidth: 1,
-                borderColor: "#9D9D9D",
-                borderRadius: 6,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                paddingLeft: 6,
-                marginBottom: 10,
-              }}
-              onPress={() => {
-                Alert.alert(
-                  "",
-                  `Are you sure you want to make payment with this card?`,
-                  [
-                    {
-                      text: "Cancel",
-                      onPress: () => console.log("Cancel Pressed"),
-                      style: "cancel",
-                    },
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "adyen" ||
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "authorize_net"
-                        ) {
-                          SaveOrder(item?.token, "adyen", cusMainID, 0);
-                        } else {
-                          SaveOrder(item?.token, "", "", 0);
-                        }
-                        setListLoader(index);
-                        setPaySuccess("loading");
-                      },
-                    },
-                  ]
-                );
-              }}
-            >
-              <View
+            <>
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.7}
                 style={{
+                  borderWidth: 1,
+                  borderColor: "#9D9D9D",
+                  borderRadius: 6,
                   flexDirection: "row",
+                  justifyContent: "space-between",
                   alignItems: "center",
+                  paddingLeft: 6,
+                  marginBottom: 10,
+                  position: "relative",
+                }}
+                onPress={() => {
+                  Alert.alert(
+                    "",
+                    `Are you sure you want to make payment with this card?`,
+                    [
+                      {
+                        text: "Cancel",
+                        onPress: () => console.log("Cancel Pressed"),
+                        style: "cancel",
+                      },
+                      {
+                        text: "OK",
+                        onPress: () => {
+                          if (
+                            cardBrandSelect?.charge_object?.charges_obj
+                              ?.gateway_name === "adyen" ||
+                            cardBrandSelect?.charge_object?.charges_obj
+                              ?.gateway_name === "authorize_net"
+                          ) {
+                            SaveOrder(item?.token, "adyen", cusMainID, 0);
+                          } else {
+                            SaveOrder(item?.token, "", "", 0);
+                          }
+                          setListLoader(index);
+                          setPaySuccess("loading");
+                        },
+                      },
+                    ]
+                  );
                 }}
               >
-                <Image
-                  source={{
-                    uri: cardBrandSelect["payment_sub_method.logo"],
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: cardBrandSelect["payment_sub_method.logo"],
+                    }}
+                    style={{
+                      width: 50,
+                      height: 50,
+                      marginRight: 10,
+                    }}
+                    resizeMode="contain"
+                    alt={item["payment_method.payment_method"]}
+                  />
+                  <Text style={{ fontSize: 16, color: "#000" }}>
+                    XXXX XXXX XXXX{" "}
+                    {item?.last4.length > 4
+                      ? item?.last4.slice(-4)
+                      : item?.last4}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={{ fontSize: 16, color: "#000" }}>
+                    {currency_symbol[paymentData?.currency]}
+                    {finalAmount}
+                  </Text>
+
+                  {listLoader === index ? (
+                    <ActivityIndicator
+                      style={{ marginRight: 4 }}
+                      size={"small"}
+                      animating
+                      color={"#0068EF"}
+                    />
+                  ) : (
+                    <MaterialIcons
+                      name="arrow-right"
+                      size={36}
+                      color={"#0068EF"}
+                    />
+                  )}
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    Alert.alert(
+                      "",
+                      "Are you sure you want to remove this card?",
+                      [
+                        {
+                          text: "Cancel",
+                          onPress: () => console.log("Cancel Pressed"),
+                          style: "cancel",
+                        },
+                        {
+                          text: "OK",
+                          onPress: () => {
+                            RemoveSavedCard(item);
+                          },
+                        },
+                      ]
+                    );
                   }}
                   style={{
-                    width: 50,
-                    height: 50,
-                    marginRight: 10,
+                    position: "absolute",
+                    top: -10,
+                    right: -10,
                   }}
-                  resizeMode="contain"
-                  alt={item["payment_method.payment_method"]}
-                />
-                <Text style={{ fontSize: 16, color: "#000" }}>
-                  XXXX XXXX XXXX{" "}
-                  {item?.last4.length > 4 ? item?.last4.slice(-4) : item?.last4}
-                </Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontSize: 16, color: "#000" }}>
-                  {currency_symbol[paymentData?.currency]}
-                  {finalAmount}
-                </Text>
-
-                {listLoader === index ? (
-                  <ActivityIndicator
-                    style={{ marginRight: 4 }}
-                    size={"small"}
-                    animating
-                    color={"#0068EF"}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    style={{
+                      fontSize: 24,
+                      color: "red",
+                    }}
                   />
-                ) : (
-                  <MaterialIcons
-                    name="arrow-right"
-                    size={36}
-                    color={"#0068EF"}
-                  />
-                )}
-              </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </>
           );
         })}
       <View
@@ -1392,6 +1458,24 @@ function CustomCard(props, ref) {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any card details, So your data will be secure end to end.
         </Text>
+        <View
+          style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}
+        >
+          <TouchableOpacity
+            style={{ marginRight: 6 }}
+            onPress={() => setChecked(!checked)}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name={checked ? "checkbox-outline" : "checkbox-blank-outline"}
+              size={30}
+              color={"#0068EF"}
+            />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 16, flex: 1 }}>
+            Securely save my information for 1-click checkout
+          </Text>
+        </View>
         {!isEmpty(chargeData?.mainChargeData) && !noCharge && (
           <View
             style={{
@@ -1560,7 +1644,9 @@ function CustomCard(props, ref) {
                           cardBrandSelect?.charge_object?.charges_obj
                             ?.gateway_name === "authorize_net"
                         ) {
-                          getAuthorizeTrasId();
+                          !isEmpty(cusMainID)
+                            ? createCustomerPayId(cusMainID)
+                            : getAuthorizeTrasId();
                         } else if (
                           cardBrandSelect?.charge_object?.charges_obj
                             ?.gateway_name === "paypal"

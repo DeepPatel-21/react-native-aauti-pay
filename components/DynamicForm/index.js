@@ -43,6 +43,7 @@ const DForm = (props) => {
   const [listLoader, setListLoader] = useState("");
   const [mainLoader, setMainLoader] = useState(false);
   const [isShowBreackdown, setIsShowBreackdown] = useState(false);
+  const [checked, setChecked] = useState(false);
   const Ref = useRef(null);
 
   let bytes = CryptoJS.AES.decrypt(
@@ -141,7 +142,7 @@ const DForm = (props) => {
         onFocus={() => setIsFocused(obj?.title)}
         onBlur={() => setIsFocused("")}
         activeOutlineColor="#0068EF"
-        maxLength={obj?.length}
+        maxLength={key === "account_number" ? obj?.max : obj?.length}
         outlineColor="#9D9D9D"
         error={obj?.error}
         placeholder={`Enter ${obj?.title}`}
@@ -190,8 +191,10 @@ const DForm = (props) => {
         dummy_obj[key].error = true;
         dummy_obj[key].errmsg = `Please enter ${item?.title}`;
       } else if (
-        item?.answer.length !== item?.length &&
-        (key === "account_number" || key === "routing_number")
+        (key === "account_number" &&
+          (item?.answer.length < item?.min ||
+            item?.answer.length > item?.max)) ||
+        (key === "routing_number" && item?.answer.length !== item?.length)
       ) {
         valid = false;
         dummy_obj[key].error = true;
@@ -303,6 +306,7 @@ const DForm = (props) => {
       data: ciphertext || "",
       order_code: code,
       is_new: isNew,
+      remember_me: checked ? 1 : 0,
     };
 
     try {
@@ -622,6 +626,29 @@ const DForm = (props) => {
     }
   }
 
+  async function RemoveSavedCard(confirmSaveType) {
+    try {
+      const data = {
+        customer_id: cusMainID,
+        token: confirmSaveType?.token,
+      };
+
+      const response = await getApiDataProgressPayment(
+        `${liveUrl}delete-user-card/${confirmSaveType?.id}`,
+        "POST",
+        JSON.stringify(data),
+        chargeData?.auth_token
+      );
+      if (response?.status == false) {
+        Alert.alert("Error", response?.message || "Something got wrong.");
+      } else {
+        getCardList();
+      }
+    } catch (error) {
+      console.log("error:", error);
+    }
+  }
+
   return mainLoader ? (
     <View
       style={{
@@ -714,6 +741,41 @@ const DForm = (props) => {
                   />
                 )}
               </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  Alert.alert(
+                    "",
+                    "Are you sure you want to remove this bank?",
+                    [
+                      {
+                        text: "Cancel",
+                        onPress: () => console.log("Cancel Pressed"),
+                        style: "cancel",
+                      },
+                      {
+                        text: "OK",
+                        onPress: () => {
+                          RemoveSavedCard(item);
+                        },
+                      },
+                    ]
+                  );
+                }}
+                style={{
+                  position: "absolute",
+                  top: -10,
+                  right: -10,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  style={{
+                    fontSize: 24,
+                    color: "red",
+                  }}
+                />
+              </TouchableOpacity>
             </TouchableOpacity>
           );
         })}
@@ -758,10 +820,33 @@ const DForm = (props) => {
           <Icon name="shield-check" size={14} color={"#9D9D9D"} /> We are not
           storing any bank details, So your data will be secure end to end.
         </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginTop: 10,
+            flex: 1,
+          }}
+        >
+          <TouchableOpacity
+            style={{ marginRight: 6 }}
+            onPress={() => setChecked(!checked)}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name={checked ? "checkbox-outline" : "checkbox-blank-outline"}
+              size={30}
+              color={"#0068EF"}
+            />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 16, flex: 1 }}>
+            Securely save my information for 1-click checkout
+          </Text>
+        </View>
         {chargeData?.mainChargeData && !noCharge && (
           <View
             style={{
-              marginTop: 10,
+              marginTop: 8,
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
