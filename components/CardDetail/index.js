@@ -226,6 +226,7 @@ export default function CardDetail(props) {
       data: ciphertext,
       order_code: code,
       is_new: 1,
+      remember_me: 0,
     };
 
     try {
@@ -245,6 +246,45 @@ export default function CardDetail(props) {
           checkPaymentProgress(code);
         }, 2000);
         Ref.current = interval;
+
+        if (response?.data && response?.data.redirect_url) {
+          const result = await InAppBrowser.open(response?.data.redirect_url, {
+            // iOS Properties
+            dismissButtonStyle: "cancel",
+            preferredBarTintColor: "#000000",
+            preferredControlTintColor: "white",
+            readerMode: false,
+            animated: true,
+            modalPresentationStyle: "pageSheet",
+            modalTransitionStyle: "coverVertical",
+            modalEnabled: true,
+            enableBarCollapsing: true,
+            // Android Properties
+            showTitle: false,
+            toolbarColor: "#000000",
+            secondaryToolbarColor: "black",
+            navigationBarColor: "black",
+            navigationBarDividerColor: "white",
+            enableUrlBarHiding: true,
+            enableDefaultShare: true,
+            forceCloseOnRedirection: false,
+            // Specify full animation resource identifier(package:anim/name)
+            // or only resource name(in case of animation bundled with app).
+            animations: {
+              startEnter: "slide_in_right",
+              startExit: "slide_out_left",
+              endEnter: "slide_in_left",
+              endExit: "slide_out_right",
+            },
+          });
+          if (result?.type === "cancel") {
+            setTabSelected({});
+            setPaySuccess("fail", "Authentication failed");
+            setTimeout(() => {
+              setPaySuccess(false);
+            }, 5000);
+          }
+        }
       } else {
         if (!isEmpty(data)) {
           // Let's open the In App Browser to handle Netbanking url
@@ -436,10 +476,10 @@ export default function CardDetail(props) {
             : {
                 type: "PAYMENT_GATEWAY",
                 gateway: "stripe",
-                gatewayMerchantId: "",
+                gatewayMerchantId: "acct_1LmctNEVo4rpUEeL",
                 stripe: {
                   publishableKey: originalText?.public_key,
-                  version: "2018-11-08",
+                  version: "2022-08-01",
                 },
               },
         allowedCardNetworks,
@@ -618,13 +658,16 @@ export default function CardDetail(props) {
                       "Google Pay"
                     ) {
                       SaveOrder(paymentMethod[index], "gPay");
+                    } else if (
+                      item["payment_method.payment_method"] == "ACH" &&
+                      isEmpty(item?.ach_fields)
+                    ) {
+                      SaveOrder(paymentMethod[index], "saveO");
                     } else {
-                      item["payment_method.payment_method"] === "ACH"
-                        ? getPaymentOption()
-                        : getPaymentOption(
-                            paymentMethod[index]?.payment_method_id,
-                            index
-                          );
+                      getPaymentOption(
+                        paymentMethod[index]?.payment_method_id,
+                        index
+                      );
                     }
                   }}
                   style={{ height: "100%", width: "100%" }}
@@ -863,13 +906,17 @@ export default function CardDetail(props) {
                                 ] === "Google Pay"
                               ) {
                                 SaveOrder(paymentMethod[index], "gPay");
+                              } else if (
+                                item["payment_method.payment_method"] ==
+                                  "ACH" &&
+                                isEmpty(item?.ach_fields)
+                              ) {
+                                SaveOrder(paymentMethod[index], "saveO");
                               } else {
-                                item["payment_method.payment_method"] === "ACH"
-                                  ? getPaymentOption()
-                                  : getPaymentOption(
-                                      paymentMethod[index]?.payment_method_id,
-                                      index
-                                    );
+                                getPaymentOption(
+                                  paymentMethod[index]?.payment_method_id,
+                                  index
+                                );
                               }
                             }}
                           >
@@ -1265,6 +1312,8 @@ export default function CardDetail(props) {
                           ? "https://pngimg.com/uploads/paypal/paypal_PNG22.png"
                           : longPressData?.gateway_name === "razorpay"
                           ? "https://assets.stickpng.com/images/62cc1dab150d5de9a3dad5fb.png"
+                          : longPressData?.gateway_name === "adyen"
+                          ? "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Adyen_Corporate_Logo.svg/2560px-Adyen_Corporate_Logo.svg.png"
                           : "https://pngimg.com/uploads/paypal/paypal_PNG22.png",
                     }}
                     resizeMode="contain"

@@ -49,7 +49,7 @@ const PaymentAgreegator = (props) => {
     webViewStyles = {},
     injectedMessage = "",
     onModalClose = () => {},
-    merchantIdentifier = "merchant.com.app.saayampayment",
+    merchantIdentifier = "merchant.com.saayam.saayampayment",
     appCharges = [],
     noCharge = false,
     pluginURL = "staging", //staging, dev, prodapi
@@ -106,15 +106,20 @@ const PaymentAgreegator = (props) => {
   useEffect(() => {
     const handleDeepLink = (event) => {
       const url = event.url;
+      var regex = /[?&]([^=#]+)=([^&#]*)/g,
+        params = {},
+        match;
+      while (!isEmpty(url) && (match = regex.exec(url))) {
+        params[match[1]] = match[2];
+      }
       // Check if the URL contains the specified pattern
       if (url.includes("payment_intent")) {
         checkStripePayment(url);
-      } else if (url.includes("success")) {
-        console.log("Payment Done.");
+      } else if (url.includes("success") && !params?.use_url) {
         setPaySuccess("success");
         onPaymentDone();
         // Close the InAppBrowser
-      } else if (url.includes("failure")) {
+      } else if (url.includes("failure") && !params?.use_url) {
         setPaySuccess("fail", "Authentication failed");
         setTimeout(() => {
           setPaySuccess(false);
@@ -619,7 +624,7 @@ PaymentAgreegator.defaultProps = {
   mainButtonContainerStyle: {},
   themeColor: "#F5F9FF",
   noCharge: false,
-  merchantIdentifier: "merchant.com.app.saayampayment",
+  merchantIdentifier: "merchant.com.saayam.saayampayment",
   appCharges: [],
   pluginURL: "staging",
   changeBtnText: "Pay",
