@@ -1260,7 +1260,7 @@ function CustomCard(props, ref) {
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Text style={{ fontSize: 16, color: "#000" }}>
                     {currency_symbol[paymentData?.currency]}
-                    {finalAmount}
+                    {Number(finalAmount)?.toFixed(2)}
                   </Text>
 
                   {listLoader === index ? (
@@ -1598,7 +1598,7 @@ function CustomCard(props, ref) {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {finalAmount?.toFixed(2)}
+                {Number(finalAmount)?.toFixed(2)}
               </Text>
             </View>
           </>
@@ -1610,7 +1610,7 @@ function CustomCard(props, ref) {
             disabled={isDisable || BtnLoader}
             buttonTitle={`${changeBtnText} ${
               currency_symbol[paymentData?.currency]
-            }${finalAmount}`}
+            }${Number(finalAmount)?.toFixed(2)}`}
             onButtonClick={() => {
               Alert.alert(
                 "",

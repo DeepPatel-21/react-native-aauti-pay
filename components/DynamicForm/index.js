@@ -724,7 +724,7 @@ const DForm = (props) => {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Text style={{ fontSize: 16, color: "#000" }}>
                   {currency_symbol[paymentData?.currency]}
-                  {finalAmount}
+                  {Number(finalAmount)?.toFixed(2)}
                 </Text>
                 {listLoader === index ? (
                   <ActivityIndicator
@@ -966,7 +966,7 @@ const DForm = (props) => {
                 numberOfLines={2}
               >
                 {currency_symbol[paymentData?.currency]}
-                {finalAmount?.toFixed(2)}
+                {Number(finalAmount)?.toFixed(2)}
               </Text>
             </View>
           </>
@@ -978,7 +978,7 @@ const DForm = (props) => {
             disabled={btnLoader}
             buttonTitle={`${changeBtnText} ${
               currency_symbol[paymentData?.currency]
-            }${finalAmount}`}
+            }${Number(finalAmount)?.toFixed(2)}`}
             onButtonClick={() => Validation()}
           />
         </View>
