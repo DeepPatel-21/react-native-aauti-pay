@@ -320,7 +320,7 @@ const DForm = (props) => {
         setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
-        }, 2000);
+        }, 5000);
       } else if (response?.status === "processing") {
         const interval = setInterval(() => {
           checkPaymentProgress(code);
@@ -516,7 +516,7 @@ const DForm = (props) => {
         setPaySuccess("fail");
         setTimeout(() => {
           setPaySuccess(false);
-        }, 2000);
+        }, 5000);
         setBtnLoader(false);
       }
     } catch (error) {
@@ -583,7 +583,7 @@ const DForm = (props) => {
       setPaySuccess("fail");
       setTimeout(() => {
         setPaySuccess(false);
-      }, 2000);
+      }, 5000);
       setBtnLoader(false);
       console.error(
         "Error:",

@@ -39,7 +39,7 @@ import {
   confirmPlatformPayPayment,
   isPlatformPaySupported,
 } from "@stripe/stripe-react-native";
-import { Card } from "react-native-paper";
+import { Card, TextInput } from "react-native-paper";
 import { currency_symbol } from "../staticData";
 import RBSheet from "react-native-raw-bottom-sheet";
 import LinearGradient from "react-native-linear-gradient";
@@ -59,6 +59,7 @@ export default function CardDetail(props) {
     chargeData,
     noCharge,
     merchantIdentifier,
+    themeColor,
   } = props;
 
   const deviceHeight = Dimensions.get("screen").height;
@@ -78,7 +79,10 @@ export default function CardDetail(props) {
   const displayName = longPressData?.gateway_name?.replaceAll("_", " ");
 
   const [paymentType, setPaymentType] = useState([]);
+  const [paymentSearchType, setPaymentSearchType] = useState([]);
   const [isApplePaySupported, setIsApplePaySupported] = useState(false);
+
+  const [search, setSearch] = useState("");
 
   const [hideArrow, setHideArrow] = useState("top");
   const [layoutWidth, setLayoutWidth] = useState("");
@@ -176,7 +180,7 @@ export default function CardDetail(props) {
         .then((response) => {
           if (response?.status) {
             setPaymentType(response?.data);
-
+            setPaymentSearchType(response?.data);
             if (
               method &&
               paymentMethod[index]["payment_method.payment_method"] !==
@@ -283,6 +287,8 @@ export default function CardDetail(props) {
             setTimeout(() => {
               setPaySuccess(false);
             }, 5000);
+
+            clearInterval(Ref.current);
           }
         }
       } else {
@@ -348,6 +354,13 @@ export default function CardDetail(props) {
         if (response?.data?.status == "success") {
           setPaySuccess("success");
           onPaymentDone();
+          clearInterval(Ref.current);
+        } else if (response?.data?.status == "processing") {
+          setPaySuccess("wait", response?.data?.proccessing_message);
+          onPaymentDone();
+          setTimeout(() => {
+            setPaySuccess(false);
+          }, 5000);
           clearInterval(Ref.current);
         } else if (response?.data?.status == "failed") {
           setPaySuccess("fail", response?.data?.fail_reason?.toString());
@@ -437,7 +450,7 @@ export default function CardDetail(props) {
         setPaySuccess("fail", response?.message);
         setTimeout(() => {
           setPaySuccess(false);
-        }, 2000);
+        }, 5000);
       } else {
         if (type === "aPay") {
           applePay(subData, response?.data?.client_secret, code);
@@ -450,7 +463,7 @@ export default function CardDetail(props) {
       setPaySuccess("fail");
       setTimeout(() => {
         setPaySuccess(false);
-      }, 2000);
+      }, 5000);
       console.log("error:", error);
     }
   }
@@ -517,7 +530,7 @@ export default function CardDetail(props) {
                 setPaySuccess("fail", error.message);
                 setTimeout(() => {
                   setPaySuccess(false);
-                }, 2000);
+                }, 5000);
                 sendErrorReason(
                   liveUrl,
                   code,
@@ -585,7 +598,7 @@ export default function CardDetail(props) {
       setPaySuccess("fail", error?.message);
       setTimeout(() => {
         setPaySuccess(false);
-      }, 2000);
+      }, 5000);
       sendErrorReason(liveUrl, code, error?.message, chargeData?.auth_token);
     } else {
       setPaySuccess("success");
@@ -743,6 +756,22 @@ export default function CardDetail(props) {
       setHideArrow("bottom");
     }
   };
+
+  function filterVal(val) {
+    if (isEmpty(val)) {
+      setPaymentSearchType(paymentType);
+    } else {
+      const newData = paymentType?.filter((item) => {
+        return (
+          item["payment_sub_method.type"]
+            ?.toLowerCase()
+            .indexOf(val?.toLowerCase()) > -1
+        );
+      });
+      setPaymentSearchType(newData);
+    }
+    setSearch(val);
+  }
 
   return (
     <StripeProvider
@@ -1081,7 +1110,7 @@ export default function CardDetail(props) {
               <Text
                 style={{
                   marginHorizontal: 10,
-                  paddingVertical: 15,
+                  paddingVertical: 10,
                   color: BaseColors.textColor,
                   fontWeight: "600",
                   fontSize: 16,
@@ -1093,16 +1122,39 @@ export default function CardDetail(props) {
                   : "Wallets"}
               </Text>
             )}
-
+            <TextInput
+              mode="outlined"
+              label={"Search"}
+              value={search}
+              onChangeText={(val) => {
+                filterVal(val);
+              }}
+              outlineStyle={{
+                borderRadius: 6,
+                borderWidth: 1,
+              }}
+              placeholderTextColor={"#9D9D9D"}
+              style={{
+                fontSize: 18,
+                backgroundColor: themeColor,
+                marginHorizontal: 10,
+              }}
+              activeOutlineColor="#0068EF"
+              outlineColor="#9D9D9D"
+              placeholder={"Search Bank name"}
+              theme={{ colors: { error: "red" } }}
+              contentStyle={{ paddingBottom: 4 }}
+            />
             <View
               style={{
                 flexGrow: 1,
-                paddingBottom: 30,
+                paddingBottom: 100,
+                paddingTop: 10,
               }}
             >
               <FlatList
                 showsVerticalScrollIndicator={false}
-                data={paymentType}
+                data={paymentSearchType}
                 renderItem={({ item, index }) => {
                   return (
                     <Animated.View entering={FadeInDown} exiting={FadeOutUp}>

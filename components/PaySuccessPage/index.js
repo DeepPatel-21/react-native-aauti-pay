@@ -7,6 +7,7 @@ const PaySuccess = ({ responseType, message }) => {
   const isLoading = responseType === "loading";
   const payFail = responseType === "fail";
   const paySuccessFull = responseType === "success";
+  const isWait = responseType === "wait";
   return (
     <>
       <View
@@ -25,11 +26,13 @@ const PaySuccess = ({ responseType, message }) => {
             source={
               paySuccessFull
                 ? require("../Images/success.png")
+                : isWait
+                ? require("../Images/wait.png")
                 : require("../Images/fail.png")
             }
             style={{
-              width: 100,
-              height: 100,
+              width: isWait ? 140 : 100,
+              height: isWait ? 140 : 100,
             }}
           />
         )}
@@ -46,6 +49,8 @@ const PaySuccess = ({ responseType, message }) => {
             ? "Processing Payment"
             : paySuccessFull
             ? "Payment Successfull!"
+            : isWait
+            ? ""
             : "Payment Failed!"}
         </Text>
         <Text

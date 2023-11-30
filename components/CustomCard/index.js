@@ -318,7 +318,11 @@ function CustomCard(props, ref) {
           setPaySuccess(false);
         }, 5000);
       } else {
-        paymentApi(token, type, cusID, isNew, response?.code);
+        if (type === "paypal") {
+          makePaymentPaypal(response?.code);
+        } else {
+          paymentApi(token, type, cusID, isNew, response?.code);
+        }
       }
     } catch (error) {
       console.log("error:", error);
@@ -623,7 +627,7 @@ function CustomCard(props, ref) {
   };
 
   //Paypal
-  const makePaymentPaypal = async () => {
+  const makePaymentPaypal = async (code) => {
     setPaySuccess("loading");
 
     const cardType1 = creditCardType.expirationDate(expDate);
@@ -644,8 +648,8 @@ function CustomCard(props, ref) {
             experience_context: {
               brand_name: "Aautipay",
               locale: "en-US",
-              return_url: `${liveUrl}redirect-3ds?val=success&gateway=paypal`,
-              cancel_url: `${liveUrl}redirect-3ds?val=fail&gateway=paypal`,
+              return_url: `${liveUrl}redirect-3ds?val=success&order_code=${code}`,
+              cancel_url: `${liveUrl}redirect-3ds?val=fail&order_code=${code}`,
             },
           },
         },
@@ -726,7 +730,7 @@ function CustomCard(props, ref) {
           }, 5000);
         } else if (result?.type === "success") {
           if (result?.url?.includes("success")) {
-            SaveOrder(cardTokenResponse?.data?.id, "paypal", "", 1);
+            paymentApi(cardTokenResponse?.data?.id, "paypal", "", 1, code);
           } else {
             setPaySuccess("fail");
             setTimeout(() => {
@@ -1651,7 +1655,7 @@ function CustomCard(props, ref) {
                           cardBrandSelect?.charge_object?.charges_obj
                             ?.gateway_name === "paypal"
                         ) {
-                          makePaymentPaypal();
+                          SaveOrder("", "paypal", "", 1);
                         }
                       }
                     },
