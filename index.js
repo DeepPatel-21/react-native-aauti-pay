@@ -247,6 +247,7 @@ const PaymentAgreegator = (props) => {
       withoutChargeAmount: paymentData?.amount - amountToMin,
       auth_token: token,
       mainChargeData: mainChargeData,
+      amountToAdd: amountToAdd,
       mode: mode,
       public_key: public_key,
     };

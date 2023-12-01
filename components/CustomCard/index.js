@@ -31,6 +31,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { currency_symbol } from "../staticData";
 import Cbutton from "../CButton";
 import InAppBrowser from "react-native-inappbrowser-reborn";
+import ConfirmationModal from "../ConfirmationModal";
 
 function CustomCard(props, ref) {
   const {
@@ -91,6 +92,9 @@ function CustomCard(props, ref) {
   const [listLoader, setListLoader] = useState("");
   const [mainLoader, setMainLoader] = useState(false);
 
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmData, setConfirmData] = useState({});
+
   const [cardErr, setCardErr] = useState({
     card: false,
     cvv: false,
@@ -98,14 +102,16 @@ function CustomCard(props, ref) {
   });
 
   const paymentGatwayFee = (
-    cardBrandSelect?.charge_object?.charges_obj?.final_amount -
+    cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+    chargeData?.amountToAdd -
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
   const finalAmount = noCharge
     ? paymentData?.amount
     : chargeData?.isPaymentGateWay
-    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
+    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+      chargeData?.amountToAdd
     : chargeData?.withChargeAmount;
 
   useEffect(() => {
@@ -286,7 +292,9 @@ function CustomCard(props, ref) {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
         app_token: paymentData?.app_token,
         country_id: cardBrandSelect?.country_id,
         currency: paymentData?.currency,
@@ -333,7 +341,9 @@ function CustomCard(props, ref) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
       },
       token,
     };
@@ -1206,34 +1216,12 @@ function CustomCard(props, ref) {
                   position: "relative",
                 }}
                 onPress={() => {
-                  Alert.alert(
-                    "",
-                    `Are you sure you want to make payment with this card?`,
-                    [
-                      {
-                        text: "Cancel",
-                        onPress: () => console.log("Cancel Pressed"),
-                        style: "cancel",
-                      },
-                      {
-                        text: "OK",
-                        onPress: () => {
-                          if (
-                            cardBrandSelect?.charge_object?.charges_obj
-                              ?.gateway_name === "adyen" ||
-                            cardBrandSelect?.charge_object?.charges_obj
-                              ?.gateway_name === "authorize_net"
-                          ) {
-                            SaveOrder(item?.token, "adyen", cusMainID, 0);
-                          } else {
-                            SaveOrder(item?.token, "", "", 0);
-                          }
-                          setListLoader(index);
-                          setPaySuccess("loading");
-                        },
-                      },
-                    ]
-                  );
+                  setShowConfirmation(true);
+                  setConfirmData({
+                    data: item,
+                    index: index,
+                    type: "saveCard",
+                  });
                 }}
               >
                 <View
@@ -1285,23 +1273,8 @@ function CustomCard(props, ref) {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => {
-                    Alert.alert(
-                      "",
-                      "Are you sure you want to remove this card?",
-                      [
-                        {
-                          text: "Cancel",
-                          onPress: () => console.log("Cancel Pressed"),
-                          style: "cancel",
-                        },
-                        {
-                          text: "OK",
-                          onPress: () => {
-                            RemoveSavedCard(item);
-                          },
-                        },
-                      ]
-                    );
+                    setShowConfirmation(true);
+                    setConfirmData({ data: item, type: "removeCard" });
                   }}
                   style={{
                     position: "absolute",
@@ -1616,56 +1589,77 @@ function CustomCard(props, ref) {
               currency_symbol[paymentData?.currency]
             }${Number(finalAmount)?.toFixed(2)}`}
             onButtonClick={() => {
-              Alert.alert(
-                "",
-                `Are you sure you want to make payment with this card?`,
-                [
-                  {
-                    text: "Cancel",
-                    onPress: () => console.log("Cancel Pressed"),
-                    style: "cancel",
-                  },
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      if (!isDisable && !BtnLoader) {
-                        if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "stripe"
-                        ) {
-                          createTokenStripe();
-                        } else if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "adyen"
-                        ) {
-                          SaveOrderAdyen();
-                        } else if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "braintree"
-                        ) {
-                          createCusIdBraintree();
-                        } else if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "authorize_net"
-                        ) {
-                          !isEmpty(cusMainID)
-                            ? createCustomerPayId(cusMainID)
-                            : getAuthorizeTrasId();
-                        } else if (
-                          cardBrandSelect?.charge_object?.charges_obj
-                            ?.gateway_name === "paypal"
-                        ) {
-                          SaveOrder("", "paypal", "", 1);
-                        }
-                      }
-                    },
-                  },
-                ]
-              );
+              setShowConfirmation(true);
+              setConfirmData({ type: "newCard" });
             }}
           />
         </View>
       </View>
+
+      <ConfirmationModal
+        {...props}
+        title={`Are you sure you want to ${
+          confirmData?.type === "removeCard" ? "remove" : "make payment with"
+        } this card?`}
+        handleCancel={() => {
+          setShowConfirmation(false);
+          confirmData({});
+        }}
+        handleConfirm={() => {
+          if (confirmData?.type === "saveCard") {
+            if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+                "adyen" ||
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+                "authorize_net"
+            ) {
+              SaveOrder(confirmData?.data?.token, "adyen", cusMainID, 0);
+            } else {
+              SaveOrder(confirmData?.data?.token, "", "", 0);
+            }
+            setListLoader(confirmData?.index);
+            setPaySuccess("loading");
+          } else if (confirmData?.type === "newCard") {
+            if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+              "stripe"
+            ) {
+              createTokenStripe();
+            } else if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+              "adyen"
+            ) {
+              SaveOrderAdyen();
+            } else if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+              "braintree"
+            ) {
+              createCusIdBraintree();
+            } else if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+              "authorize_net"
+            ) {
+              !isEmpty(cusMainID)
+                ? createCustomerPayId(cusMainID)
+                : getAuthorizeTrasId();
+            } else if (
+              cardBrandSelect?.charge_object?.charges_obj?.gateway_name ===
+              "paypal"
+            ) {
+              SaveOrder("", "paypal", "", 1);
+            }
+          } else if (confirmData?.type === "removeCard") {
+            RemoveSavedCard(confirmData?.data);
+          }
+        }}
+        showConfirmation={showConfirmation}
+        paymentGatwayFee={paymentGatwayFee}
+        paymentData={paymentData}
+        finalAmount={finalAmount}
+        chargeData={chargeData}
+        noCharge={noCharge}
+        changeBtnText={confirmData?.type === "removeCard" ? "" : changeBtnText}
+      />
     </View>
   );
 }

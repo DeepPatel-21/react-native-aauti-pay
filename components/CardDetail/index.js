@@ -44,6 +44,7 @@ import { currency_symbol } from "../staticData";
 import RBSheet from "react-native-raw-bottom-sheet";
 import LinearGradient from "react-native-linear-gradient";
 import { sendErrorReason } from "../ApiCall";
+import ConfirmationModal from "../ConfirmationModal";
 
 export default function CardDetail(props) {
   const {
@@ -60,6 +61,7 @@ export default function CardDetail(props) {
     noCharge,
     merchantIdentifier,
     themeColor,
+    changeBtnText,
   } = props;
 
   const deviceHeight = Dimensions.get("screen").height;
@@ -83,6 +85,8 @@ export default function CardDetail(props) {
   const [isApplePaySupported, setIsApplePaySupported] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmData, setConfirmData] = useState({});
 
   const [hideArrow, setHideArrow] = useState("top");
   const [layoutWidth, setLayoutWidth] = useState("");
@@ -116,6 +120,19 @@ export default function CardDetail(props) {
       setTabSelected({});
     }
   }, [isShow]);
+
+  const paymentGatwayFee = (
+    cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+    chargeData?.amountToAdd -
+    chargeData?.withChargeAmount
+  )?.toFixed(2);
+
+  const finalAmount = noCharge
+    ? paymentData?.amount
+    : chargeData?.isPaymentGateWay
+    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount +
+      chargeData?.amountToAdd
+    : chargeData?.withChargeAmount;
 
   const scrollToIndex = () => {
     if (horizontalScrollRef.current) {
@@ -216,7 +233,9 @@ export default function CardDetail(props) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: data?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          data?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
       },
     };
 
@@ -382,7 +401,9 @@ export default function CardDetail(props) {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount: subData?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          subData?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
         app_token: paymentData?.app_token,
         country_id: subData?.country_id,
         currency: paymentData?.currency,
@@ -502,7 +523,10 @@ export default function CardDetail(props) {
         totalPrice: noCharge
           ? paymentData?.amount?.toString()
           : chargeData?.isPaymentGateWay
-          ? subData?.charge_object?.charges_obj?.final_amount?.toString()
+          ? (
+              subData?.charge_object?.charges_obj?.final_amount +
+              chargeData?.amountToAdd
+            )?.toString()
           : chargeData?.withChargeAmount?.toString(),
         totalPriceStatus: "FINAL",
         currencyCode: paymentData?.currency,
@@ -546,8 +570,9 @@ export default function CardDetail(props) {
 
   const applePay = async (item, clientSecret, code) => {
     const newArr = [];
-    const paymentGatwayFee = (
-      item?.charge_object?.charges_obj?.final_amount -
+    const paymentGatwayFee1 = (
+      item?.charge_object?.charges_obj?.final_amount +
+      chargeData?.amountToAdd -
       chargeData?.withChargeAmount
     )?.toFixed(2);
 
@@ -568,7 +593,7 @@ export default function CardDetail(props) {
         label: item1?.name,
         amount:
           item1?.slug === "payment_gateway_fee"
-            ? Number(paymentGatwayFee)?.toFixed(2)?.toString()
+            ? Number(paymentGatwayFee1)?.toFixed(2)?.toString()
             : Number(amountToAdd)?.toFixed(2)?.toString(),
         paymentType: PlatformPay.PaymentType.Immediate,
       };
@@ -583,7 +608,10 @@ export default function CardDetail(props) {
             amount: noCharge
               ? paymentData?.amount?.toString()
               : chargeData?.isPaymentGateWay
-              ? item?.charge_object?.charges_obj?.final_amount?.toString()
+              ? (
+                  item?.charge_object?.charges_obj?.final_amount +
+                  chargeData?.amountToAdd
+                )?.toString()
               : chargeData?.withChargeAmount?.toString(),
             paymentType: PlatformPay.PaymentType.Immediate,
           },
@@ -645,6 +673,10 @@ export default function CardDetail(props) {
                         "Google Pay" &&
                       paymentMethod[index]["payment_method.payment_method"] !==
                         "UPI" &&
+                      !(
+                        paymentMethod[index]["payment_method.payment_method"] ==
+                          "ACH" && isEmpty(item?.ach_fields)
+                      ) &&
                       setisShow(index);
                     setShowCustom("");
                     setCardBrandSelect(null);
@@ -654,28 +686,49 @@ export default function CardDetail(props) {
                       paymentMethod[index]["payment_method.payment_method"] ===
                       "UPI"
                     ) {
-                      SaveOrder(paymentMethod[index], "saveO");
-                      setPaymentType([]);
+                      setShowConfirmation(true);
+                      setConfirmData({
+                        data: paymentMethod[index],
+                        type: "saveO",
+                      });
+                      setCardBrandSelect(paymentMethod[index]);
                     } else if (
                       paymentMethod[index]["payment_method.payment_method"] ===
                       "Apple Pay"
                     ) {
-                      isApplePaySupported
-                        ? SaveOrder(paymentMethod[index], "aPay")
-                        : Alert.alert(
-                            "",
-                            "Apple Pay is not supported on this device."
-                          );
+                      if (isApplePaySupported) {
+                        setShowConfirmation(true);
+                        setConfirmData({
+                          data: paymentMethod[index],
+                          type: "aPay",
+                        });
+                        setCardBrandSelect(paymentMethod[index]);
+                      } else {
+                        Alert.alert(
+                          "",
+                          "Apple Pay is not supported on this device."
+                        );
+                      }
                     } else if (
                       paymentMethod[index]["payment_method.payment_method"] ===
                       "Google Pay"
                     ) {
-                      SaveOrder(paymentMethod[index], "gPay");
+                      setShowConfirmation(true);
+                      setConfirmData({
+                        data: paymentMethod[index],
+                        type: "gPay",
+                      });
+                      setCardBrandSelect(paymentMethod[index]);
                     } else if (
                       item["payment_method.payment_method"] == "ACH" &&
                       isEmpty(item?.ach_fields)
                     ) {
-                      SaveOrder(paymentMethod[index], "saveO");
+                      setShowConfirmation(true);
+                      setConfirmData({
+                        data: paymentMethod[index],
+                        type: "saveO",
+                      });
+                      setCardBrandSelect(paymentMethod[index]);
                     } else {
                       getPaymentOption(
                         paymentMethod[index]?.payment_method_id,
@@ -1167,7 +1220,9 @@ export default function CardDetail(props) {
                           paddingHorizontal: 10,
                         }}
                         onPress={() => {
-                          setTabSelected(item);
+                          setShowConfirmation(true);
+                          setConfirmData({ data: item, type: "walletNet" });
+                          setCardBrandSelect(item);
                         }}
                       >
                         <View
@@ -1681,6 +1736,47 @@ export default function CardDetail(props) {
           </View>
         </RBSheet>
       </View>
+      <ConfirmationModal
+        {...props}
+        title={`Are you sure you want to make payment with ${
+          cardBrandSelect
+            ? cardBrandSelect["payment_method.payment_method"] === "UPI"
+              ? "UPI"
+              : cardBrandSelect["payment_method.payment_method"] === "ACH"
+              ? "ACH"
+              : cardBrandSelect["payment_method.payment_method"] ===
+                "Google Pay"
+              ? "Google Pay"
+              : cardBrandSelect["payment_method.payment_method"] === "Apple Pay"
+              ? "Apple Pay"
+              : cardBrandSelect?.payment_method_id === 2
+              ? "this Bank"
+              : cardBrandSelect?.payment_method_id === 4
+              ? "this Wallet"
+              : ""
+            : ""
+        }?`}
+        handleCancel={() => {
+          setShowConfirmation(false);
+          setCardBrandSelect(null);
+          setConfirmData({});
+        }}
+        handleConfirm={() => {
+          if (confirmData?.type === "walletNet") {
+            setTabSelected(confirmData?.data);
+          } else {
+            SaveOrder(confirmData?.data, confirmData?.type);
+            setPaymentType([]);
+          }
+        }}
+        showConfirmation={showConfirmation}
+        paymentGatwayFee={paymentGatwayFee}
+        paymentData={paymentData}
+        finalAmount={finalAmount}
+        chargeData={chargeData}
+        noCharge={noCharge}
+        changeBtnText={changeBtnText}
+      />
     </StripeProvider>
   );
 }
