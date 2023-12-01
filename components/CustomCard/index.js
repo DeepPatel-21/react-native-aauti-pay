@@ -1453,31 +1453,29 @@ function CustomCard(props, ref) {
             Securely save my information for 1-click checkout
           </Text>
         </View>
-        {!isEmpty(chargeData?.mainChargeData) && !noCharge && (
+        {/* {!isEmpty(chargeData?.mainChargeData) && !noCharge && (
           <View
             style={{
               marginTop: 10,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <Text style={{fontSize: 18, fontWeight: 'bold'}}>
               Pricing Breakdown
             </Text>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => setIsShowBreackdown(!isShowBreackdown)}
-            >
+              onPress={() => setIsShowBreackdown(!isShowBreackdown)}>
               <MaterialIcons
-                name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+                name={!isShowBreackdown ? 'arrow-drop-down' : 'arrow-drop-up'}
                 size={40}
-                color={"#0068EF"}
-                style={{ marginEnd: -10 }}
+                color={'#0068EF'}
+                style={{marginEnd: -10}}
               />
             </TouchableOpacity>
           </View>
-        )}
+        )} */}
         {isShowBreackdown && !isEmpty(chargeData?.mainChargeData) && (
           <>
             <View
@@ -1603,7 +1601,7 @@ function CustomCard(props, ref) {
         } this card?`}
         handleCancel={() => {
           setShowConfirmation(false);
-          confirmData({});
+          setConfirmData({});
         }}
         handleConfirm={() => {
           if (confirmData?.type === "saveCard") {

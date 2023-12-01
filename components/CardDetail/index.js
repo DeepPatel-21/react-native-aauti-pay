@@ -182,9 +182,9 @@ export default function CardDetail(props) {
       fetch(
         `${liveUrl}payment-options/${paymentData.country_code}?method=${
           method ? method : ""
-        }&mode=${chargeData?.mode}&amount=${
-          noCharge ? paymentData?.amount : chargeData?.withChargeAmount
-        }&currency=${paymentData?.currency}`,
+        }&mode=${chargeData?.mode}&amount=${paymentData?.amount}&currency=${
+          paymentData?.currency
+        }`,
         {
           method: "GET",
           headers: {

@@ -22,6 +22,7 @@ import { currency_symbol } from "../staticData";
 import { HelperText, TextInput } from "react-native-paper";
 import DropSelect from "../DropSelect";
 import Cbutton from "../CButton";
+import ConfirmationModal from "../ConfirmationModal";
 
 const DForm = (props) => {
   const {
@@ -46,6 +47,9 @@ const DForm = (props) => {
   const [checked, setChecked] = useState(false);
   const Ref = useRef(null);
 
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmData, setConfirmData] = useState({});
+
   let bytes = CryptoJS.AES.decrypt(
     PayObj?.extra_data,
     "470cb677d807b1e0017c50b"
@@ -53,14 +57,15 @@ const DForm = (props) => {
   let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
 
   const paymentGatwayFee = (
-    PayObj?.charge_object?.charges_obj?.final_amount -
+    PayObj?.charge_object?.charges_obj?.final_amount +
+    chargeData?.amountToAdd -
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
   const finalAmount = noCharge
     ? paymentData?.amount
     : chargeData?.isPaymentGateWay
-    ? PayObj?.charge_object?.charges_obj?.final_amount
+    ? PayObj?.charge_object?.charges_obj?.final_amount + chargeData?.amountToAdd
     : chargeData?.withChargeAmount;
 
   useEffect(() => {
@@ -204,30 +209,8 @@ const DForm = (props) => {
 
     setPaymentObj(dummy_obj);
     if (valid) {
-      Alert.alert("", `Are you sure you want to make payment with this bank?`, [
-        {
-          text: "Cancel",
-          onPress: () => console.log("Cancel Pressed"),
-          style: "cancel",
-        },
-        {
-          text: "OK",
-          onPress: () => {
-            if (PayObj?.charge_object?.charges_obj?.gateway_name === "stripe") {
-              createTokenStripe();
-            } else if (
-              PayObj?.charge_object?.charges_obj?.gateway_name ===
-              "authorize_net"
-            ) {
-              !isEmpty(cusMainID)
-                ? createTokenAuthorize(cusMainID)
-                : getAuthorizeTrasId();
-            } else {
-              createTokenAdyen();
-            }
-          },
-        },
-      ]);
+      setShowConfirmation(true);
+      setConfirmData({ type: "newCard" });
     }
   };
 
@@ -237,7 +220,9 @@ const DForm = (props) => {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          PayObj?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
         app_token: paymentData?.app_token,
         country_id: PayObj?.country_id,
         currency: paymentData?.currency,
@@ -281,7 +266,9 @@ const DForm = (props) => {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
+        final_amount:
+          PayObj?.charge_object?.charges_obj?.final_amount +
+          chargeData?.amountToAdd,
       },
     };
     if (isType === "adyen" || isType === "authorize_net") {
@@ -684,25 +671,8 @@ const DForm = (props) => {
                 marginBottom: 10,
               }}
               onPress={() => {
-                Alert.alert(
-                  "",
-                  `Are you sure you want to make payment with this bank?`,
-                  [
-                    {
-                      text: "Cancel",
-                      onPress: () => console.log("Cancel Pressed"),
-                      style: "cancel",
-                    },
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        SaveOrder(item?.token, 0);
-                        setPaySuccess("loading");
-                        setListLoader(index);
-                      },
-                    },
-                  ]
-                );
+                setShowConfirmation(true);
+                setConfirmData({ data: item, index: index, type: "saveCard" });
               }}
             >
               <View
@@ -744,23 +714,8 @@ const DForm = (props) => {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => {
-                  Alert.alert(
-                    "",
-                    "Are you sure you want to remove this bank?",
-                    [
-                      {
-                        text: "Cancel",
-                        onPress: () => console.log("Cancel Pressed"),
-                        style: "cancel",
-                      },
-                      {
-                        text: "OK",
-                        onPress: () => {
-                          RemoveSavedCard(item);
-                        },
-                      },
-                    ]
-                  );
+                  setShowConfirmation(true);
+                  setConfirmData({ data: item, type: "removeCard" });
                 }}
                 style={{
                   position: "absolute",
@@ -843,31 +798,29 @@ const DForm = (props) => {
             Securely save my information for 1-click checkout
           </Text>
         </View>
-        {chargeData?.mainChargeData && !noCharge && (
+        {/* {chargeData?.mainChargeData && !noCharge && (
           <View
             style={{
               marginTop: 8,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <Text style={{fontSize: 18, fontWeight: 'bold'}}>
               Pricing Breackdown
             </Text>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => setIsShowBreackdown(!isShowBreackdown)}
-            >
+              onPress={() => setIsShowBreackdown(!isShowBreackdown)}>
               <MaterialIcons
-                name={!isShowBreackdown ? "arrow-drop-down" : "arrow-drop-up"}
+                name={!isShowBreackdown ? 'arrow-drop-down' : 'arrow-drop-up'}
                 size={40}
-                color={"#0068EF"}
-                style={{ marginEnd: -10 }}
+                color={'#0068EF'}
+                style={{marginEnd: -10}}
               />
             </TouchableOpacity>
           </View>
-        )}
+        )} */}
         {isShowBreackdown && chargeData?.mainChargeData && (
           <>
             <View
@@ -982,6 +935,50 @@ const DForm = (props) => {
             onButtonClick={() => Validation()}
           />
         </View>
+        <ConfirmationModal
+          {...props}
+          title={`Are you sure you want to ${
+            confirmData?.type === "removeCard" ? "remove" : "make payment with"
+          } this bank?`}
+          handleCancel={() => {
+            setShowConfirmation(false);
+            setConfirmData({});
+          }}
+          handleConfirm={() => {
+            if (confirmData?.type === "saveCard") {
+              SaveOrder(confirmData?.data?.token, 0);
+              setPaySuccess("loading");
+              setListLoader(confirmData?.index);
+            } else if (confirmData?.type === "newCard") {
+              if (
+                PayObj?.charge_object?.charges_obj?.gateway_name === "stripe"
+              ) {
+                createTokenStripe();
+              } else if (
+                PayObj?.charge_object?.charges_obj?.gateway_name ===
+                "authorize_net"
+              ) {
+                !isEmpty(cusMainID)
+                  ? createTokenAuthorize(cusMainID)
+                  : getAuthorizeTrasId();
+              } else {
+                createTokenAdyen();
+              }
+            }
+            if (confirmData?.type === "removeCard") {
+              RemoveSavedCard(confirmData?.data);
+            }
+          }}
+          showConfirmation={showConfirmation}
+          paymentGatwayFee={paymentGatwayFee}
+          paymentData={paymentData}
+          finalAmount={finalAmount}
+          chargeData={chargeData}
+          noCharge={noCharge}
+          changeBtnText={
+            confirmData?.type === "removeCard" ? "" : changeBtnText
+          }
+        />
       </View>
     </>
   );

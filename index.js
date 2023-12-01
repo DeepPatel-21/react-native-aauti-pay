@@ -377,9 +377,9 @@ const PaymentAgreegator = (props) => {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
-        }?method=${""}&mode=${mode}&amount=${
-          noCharge ? paymentData?.amount : amountToAdd
-        }&currency=${paymentData?.currency}`,
+        }?method=${""}&mode=${mode}&amount=${paymentData?.amount}&currency=${
+          paymentData?.currency
+        }`,
         {
           method: "GET",
           headers: {
