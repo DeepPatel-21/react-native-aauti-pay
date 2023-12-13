@@ -115,11 +115,11 @@ const PaymentAgreegator = (props) => {
       // Check if the URL contains the specified pattern
       if (url.includes("payment_intent")) {
         checkStripePayment(url);
-      } else if (url.includes("success") && !params?.use_url) {
+      } else if (url.includes("success") && params?.use_url === "false") {
         setPaySuccess("success");
         onPaymentDone();
         // Close the InAppBrowser
-      } else if (url.includes("failure") && !params?.use_url) {
+      } else if (url.includes("failure") && params?.use_url === "false") {
         setPaySuccess("fail", "Authentication failed");
         setTimeout(() => {
           setPaySuccess(false);
