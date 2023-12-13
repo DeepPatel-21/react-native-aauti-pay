@@ -141,6 +141,50 @@ const PaymentAgreegator = (props) => {
     }
   }, [paySuccess]);
 
+  //on everytime webViewState change
+  useEffect(() => {
+    if (!webViewState?.modalBool) {
+      onModalClose();
+      setViewState("");
+      setSubscriptionData({});
+      setPaymentMethod([]);
+      setPaySuccess(false);
+      setActiveIndex([]);
+      setisShow("");
+    }
+    if (webViewState?.modalBool) {
+      setPaySuccess(false);
+    }
+  }, [webViewState]);
+
+  //on injectedMessage change
+  useEffect(() => {
+    if (injectedMessage === "open") {
+      setWebViewState({
+        ...webViewState,
+        modalBool: true,
+        urlLink: "",
+      });
+      getAccessToken();
+    }
+
+    if (injectedMessage === "close") {
+      onMessageChange();
+    }
+  }, [injectedMessage]);
+
+  //on modal open & close
+  useEffect(() => {
+    if (!isEmpty(PaymentType)) {
+      if (PaymentType === "one_time" || PaymentType === "subscription") {
+        setViewState("cardDetail");
+      } else if (PaymentType === "custom_subscription") {
+        setViewState("custom");
+      }
+    }
+  }, [webViewState?.modalBool]);
+
+  //login with apptoken
   async function getAccessToken() {
     setPageLoader(true);
 
@@ -183,6 +227,7 @@ const PaymentAgreegator = (props) => {
     }
   }
 
+  //getting chargedata from backend
   async function getAppCharges(token, useID, mode, public_key) {
     fetch(`${liveUrl}get-app-charges/${useID}/${paymentData?.country_code}`, {
       method: "GET",
@@ -205,6 +250,7 @@ const PaymentAgreegator = (props) => {
       });
   }
 
+  //inclusive & exclusive calculation
   const chargesApply = (mainChargeData, token, mode, public_key) => {
     let sum_per = 0;
     let sum_inc_per = 0;
@@ -255,6 +301,7 @@ const PaymentAgreegator = (props) => {
     getPaymentOption(token, paymentData?.amount + amountToAdd, mode);
   };
 
+  //checking stripe payment done or not for redirect url
   async function checkStripePayment(url) {
     var regex = /[?&]([^=#]+)=([^&#]*)/g,
       params = {},
@@ -290,46 +337,7 @@ const PaymentAgreegator = (props) => {
       });
   }
 
-  useEffect(() => {
-    if (!webViewState?.modalBool) {
-      onModalClose();
-      setViewState("");
-      setSubscriptionData({});
-      setPaymentMethod([]);
-      setPaySuccess(false);
-      setActiveIndex([]);
-      setisShow("");
-    }
-    if (webViewState?.modalBool) {
-      setPaySuccess(false);
-    }
-  }, [webViewState]);
-
-  useEffect(() => {
-    if (injectedMessage === "open") {
-      setWebViewState({
-        ...webViewState,
-        modalBool: true,
-        urlLink: "",
-      });
-      getAccessToken();
-    }
-
-    if (injectedMessage === "close") {
-      onMessageChange();
-    }
-  }, [injectedMessage]);
-
-  useEffect(() => {
-    if (!isEmpty(PaymentType)) {
-      if (PaymentType === "one_time" || PaymentType === "subscription") {
-        setViewState("cardDetail");
-      } else if (PaymentType === "custom_subscription") {
-        setViewState("custom");
-      }
-    }
-  }, [webViewState?.modalBool]);
-
+  //on injectedMessage change
   const onMessageChange = () => {
     setWebViewState({
       ...webViewState,
@@ -372,14 +380,15 @@ const PaymentAgreegator = (props) => {
     }
   }
 
+  //getting payment options
   const getPaymentOption = (auth_token, amountToAdd, mode) => {
     try {
       fetch(
         `${liveUrl}payment-options/${
           paymentData.country_code
-        }?method=${""}&mode=${mode}&amount=${paymentData?.amount}&currency=${
-          paymentData?.currency
-        }`,
+        }?method=${""}&mode=${mode}&amount=${
+          noCharge ? paymentData?.amount : amountToAdd
+        }&currency=${paymentData?.currency}`,
         {
           method: "GET",
           headers: {
