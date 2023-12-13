@@ -46,12 +46,6 @@ function CustomCard(props, ref) {
     changeBtnText,
   } = props;
 
-  let bytes = CryptoJS.AES.decrypt(
-    cardBrandSelect?.extra_data,
-    "470cb677d807b1e0017c50b"
-  );
-  let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
-
   const styles = StyleSheet.create({
     root: { flex: 1, justifyContent: "center", alignItems: "center" },
     buttonContainer: {
@@ -101,17 +95,24 @@ function CustomCard(props, ref) {
     expire: false,
   });
 
+  //decrypt key from backend
+  let bytes = CryptoJS.AES.decrypt(
+    cardBrandSelect?.extra_data,
+    "470cb677d807b1e0017c50b"
+  );
+  let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+  //calculate payment gateway fee
   const paymentGatwayFee = (
-    cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-    chargeData?.amountToAdd -
+    cardBrandSelect?.charge_object?.charges_obj?.final_amount -
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
+  //final amount condition
   const finalAmount = noCharge
     ? paymentData?.amount
     : chargeData?.isPaymentGateWay
-    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-      chargeData?.amountToAdd
+    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
     : chargeData?.withChargeAmount;
 
   useEffect(() => {
@@ -128,6 +129,7 @@ function CustomCard(props, ref) {
     },
   }));
 
+  //reset data
   function resetData() {
     setCardNumber("");
     setEnteredCard("");
@@ -142,6 +144,7 @@ function CustomCard(props, ref) {
     setBtnLoader(false);
   }
 
+  //button disable
   const isDisable =
     isEmpty(cardNumber) ||
     isEmpty(cvv) ||
@@ -177,7 +180,7 @@ function CustomCard(props, ref) {
     return output;
   };
 
-  //card detail handle functions
+  //card number feild handle functions
   const handleCardNumberChange = async (formatted) => {
     setEnteredCard("");
     const cardType1 = creditCardType.number(formatted);
@@ -222,6 +225,7 @@ function CustomCard(props, ref) {
     }
   };
 
+  //card expire feild handle functions
   const handleCardExpChange = (formatted) => {
     const cardType1 = creditCardType.expirationDate(formatted);
     setCardErr({
@@ -231,6 +235,7 @@ function CustomCard(props, ref) {
     setExpDate(formatted);
   };
 
+  //card cvv feild handle functions
   const handleCvvChange = (formatted) => {
     const cvvLength = cardType === "amex" ? 4 : 3;
     const isErr = !isEmpty(formatted) && formatted?.length !== cvvLength;
@@ -286,15 +291,14 @@ function CustomCard(props, ref) {
       });
   };
 
+  //save order call
   async function SaveOrder(token, type, cusID, isNew) {
     setPaySuccess("loading");
     try {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount:
-          cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: cardBrandSelect?.country_id,
         currency: paymentData?.currency,
@@ -337,13 +341,12 @@ function CustomCard(props, ref) {
     }
   }
 
+  //custom checkout call
   async function paymentApi(token, type, cusID, isNew, code) {
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount:
-          cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: cardBrandSelect?.charge_object?.charges_obj?.final_amount,
       },
       token,
     };
@@ -434,6 +437,7 @@ function CustomCard(props, ref) {
     }
   }
 
+  //checking payment done
   async function checkPaymentProgress(code) {
     fetch(`${liveUrl}pay-response/${code}/${paymentData?.transaction_code}`, {
       method: "GET",
@@ -537,6 +541,7 @@ function CustomCard(props, ref) {
     }
   };
 
+  //Braintree payment token
   const createTokenbraintree = async (cusID, merID, headers) => {
     const apiUrl =
       chargeData?.mode === "test"
@@ -803,14 +808,13 @@ function CustomCard(props, ref) {
     }
   }
 
+  //adyen token generation
   const createTokenAdyen = async (resData) => {
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
-    myHeaders.append(
-      "X-API-Key",
-      "AQErhmfxK4PGaR1Fw0m/n3Q5qf3Vb5lCAoVTT2BUqmAZb0xtS+fZCSp5LByo8RDBXVsNvuR83LVYjEgiTGAH-hHkppXVNIpKISBipTv5+LSDZi86CBhBVb+pnqfZ5okU=-eF*@2Sd=v?9,y}FG"
-    );
+    myHeaders.append("X-API-Key", originalText?.public_key);
     const cardType1 = creditCardType.expirationDate(expDate);
+    const preFix = chargeData?.mode === "live" ? "" : "test_";
 
     // get current year's first 2 digits
     const currentYear = new Date().getFullYear();
@@ -824,10 +828,10 @@ function CustomCard(props, ref) {
       reference: `${paymentData?.transaction_code}`,
       paymentMethod: {
         type: "scheme",
-        encryptedCardNumber: `test_${cardNumber.replaceAll(" ", "")}`,
-        encryptedExpiryMonth: `test_${cardType1?.month}`,
-        encryptedExpiryYear: `test_${firstTwoDigits}${cardType1?.year}`,
-        encryptedSecurityCode: `test_${cvv}`,
+        encryptedCardNumber: `${preFix}${cardNumber.replaceAll(" ", "")}`,
+        encryptedExpiryMonth: `${preFix}${cardType1?.month}`,
+        encryptedExpiryYear: `${preFix}${firstTwoDigits}${cardType1?.year}`,
+        encryptedSecurityCode: `${preFix}${cvv}`,
         holderName: paymentData?.name,
       },
       shopperReference: resData?.customer_id,
@@ -944,6 +948,7 @@ function CustomCard(props, ref) {
     }
   }
 
+  //random string for authorize
   function generateRandomString() {
     const characters =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -957,7 +962,7 @@ function CustomCard(props, ref) {
     return randomString;
   }
 
-  // authorize.net token
+  //authorize customer Id
   async function getAuthorizeTrasId() {
     setBtnLoader(true);
     setPaySuccess("loading");
@@ -1032,6 +1037,7 @@ function CustomCard(props, ref) {
     }
   }
 
+  //authorize token
   async function createCustomerPayId(customerID) {
     const API_LOGIN_ID = originalText?.public_key;
     const TRANSACTION_KEY = originalText?.private_key;
@@ -1157,6 +1163,7 @@ function CustomCard(props, ref) {
       .catch((error) => console.error("Error:", error));
   }
 
+  //remove saved card
   async function RemoveSavedCard(confirmSaveType) {
     try {
       const data = {

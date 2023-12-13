@@ -104,6 +104,7 @@ export default function CardDetail(props) {
     (item) => item?.type === "digital wallet" && !isEmpty(item?.charge_object)
   );
 
+  //googlepay availibility check
   useEffect(() => {
     Platform.OS === "android" &&
       GooglePay.setEnvironment(GooglePay.ENVIRONMENT_TEST);
@@ -121,19 +122,20 @@ export default function CardDetail(props) {
     }
   }, [isShow]);
 
+  //calculate payment gateway feeF
   const paymentGatwayFee = (
-    cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-    chargeData?.amountToAdd -
+    cardBrandSelect?.charge_object?.charges_obj?.final_amount -
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
+  //final amount condition
   const finalAmount = noCharge
     ? paymentData?.amount
     : chargeData?.isPaymentGateWay
-    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount +
-      chargeData?.amountToAdd
+    ? cardBrandSelect?.charge_object?.charges_obj?.final_amount
     : chargeData?.withChargeAmount;
 
+  //scroll on selected
   const scrollToIndex = () => {
     if (horizontalScrollRef.current) {
       horizontalScrollRef.current.scrollTo({
@@ -149,12 +151,14 @@ export default function CardDetail(props) {
     }
   }, [paymentMethod]);
 
+  //stripe check for apllepay support or not
   useEffect(() => {
     (async function () {
       setIsApplePaySupported(await isPlatformPaySupported());
     })();
   }, [isPlatformPaySupported]);
 
+  //call everytime when tabSelected change
   useEffect(() => {
     if (!isEmpty(tabSelected)) {
       if (tabSelected?.is_custom_checkout === 0) {
@@ -176,15 +180,16 @@ export default function CardDetail(props) {
     }
   }, [tabSelected]);
 
+  //get sub payment option like Visa ...
   const getPaymentOption = (method, index) => {
     setContentLoader(true);
     try {
       fetch(
         `${liveUrl}payment-options/${paymentData.country_code}?method=${
           method ? method : ""
-        }&mode=${chargeData?.mode}&amount=${paymentData?.amount}&currency=${
-          paymentData?.currency
-        }`,
+        }&mode=${chargeData?.mode}&amount=${
+          noCharge ? paymentData?.amount : chargeData?.withChargeAmount
+        }&currency=${paymentData?.currency}`,
         {
           method: "GET",
           headers: {
@@ -228,14 +233,13 @@ export default function CardDetail(props) {
     }
   };
 
+  //custom checkout call
   async function paymentApi(data, code) {
     setSubLoader(true);
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount:
-          data?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: data?.charge_object?.charges_obj?.final_amount,
       },
     };
 
@@ -361,6 +365,7 @@ export default function CardDetail(props) {
     }
   }
 
+  //checking payment done
   async function checkPaymentProgress(code) {
     fetch(`${liveUrl}pay-response/${code}/${paymentData?.transaction_code}`, {
       method: "GET",
@@ -395,15 +400,14 @@ export default function CardDetail(props) {
       });
   }
 
+  //save order call
   async function SaveOrder(subData, type) {
     setPaySuccess("loading");
     try {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount:
-          subData?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: subData?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: subData?.country_id,
         currency: paymentData?.currency,
@@ -450,6 +454,7 @@ export default function CardDetail(props) {
     }
   }
 
+  //pay-callback for apple pay & google pay
   async function PaycallBack(code, token, type, subData) {
     try {
       const data = {
@@ -492,6 +497,7 @@ export default function CardDetail(props) {
   const allowedCardNetworks = ["VISA", "MASTERCARD"];
   const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
 
+  //google pay
   const googlePayCall = (code, subData) => {
     let bytes = CryptoJS.AES.decrypt(
       subData?.extra_data,
@@ -523,10 +529,7 @@ export default function CardDetail(props) {
         totalPrice: noCharge
           ? paymentData?.amount?.toString()
           : chargeData?.isPaymentGateWay
-          ? (
-              subData?.charge_object?.charges_obj?.final_amount +
-              chargeData?.amountToAdd
-            )?.toString()
+          ? subData?.charge_object?.charges_obj?.final_amount?.toString()
           : chargeData?.withChargeAmount?.toString(),
         totalPriceStatus: "FINAL",
         currencyCode: paymentData?.currency,
@@ -568,11 +571,11 @@ export default function CardDetail(props) {
     }
   };
 
+  //apple pay
   const applePay = async (item, clientSecret, code) => {
     const newArr = [];
     const paymentGatwayFee1 = (
-      item?.charge_object?.charges_obj?.final_amount +
-      chargeData?.amountToAdd -
+      item?.charge_object?.charges_obj?.final_amount -
       chargeData?.withChargeAmount
     )?.toFixed(2);
 
@@ -608,10 +611,7 @@ export default function CardDetail(props) {
             amount: noCharge
               ? paymentData?.amount?.toString()
               : chargeData?.isPaymentGateWay
-              ? (
-                  item?.charge_object?.charges_obj?.final_amount +
-                  chargeData?.amountToAdd
-                )?.toString()
+              ? item?.charge_object?.charges_obj?.final_amount?.toString()
               : chargeData?.withChargeAmount?.toString(),
             paymentType: PlatformPay.PaymentType.Immediate,
           },
@@ -634,6 +634,7 @@ export default function CardDetail(props) {
     }
   };
 
+  //render first display
   function renderFirstDisplay(type) {
     return paymentMethod?.map((item, index) => {
       const isHighlightIndex =
@@ -787,6 +788,7 @@ export default function CardDetail(props) {
     });
   }
 
+  //scroll functionality
   const handleScroll = (event) => {
     setHideArrow("");
 
@@ -810,6 +812,7 @@ export default function CardDetail(props) {
     }
   };
 
+  //search functionality
   function filterVal(val) {
     if (isEmpty(val)) {
       setPaymentSearchType(paymentType);

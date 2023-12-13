@@ -50,22 +50,24 @@ const DForm = (props) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmData, setConfirmData] = useState({});
 
+  //decrypt key from backend
   let bytes = CryptoJS.AES.decrypt(
     PayObj?.extra_data,
     "470cb677d807b1e0017c50b"
   );
   let originalText = JSON?.parse(bytes.toString(CryptoJS.enc.Utf8));
 
+  //calculate payment gateway fee
   const paymentGatwayFee = (
-    PayObj?.charge_object?.charges_obj?.final_amount +
-    chargeData?.amountToAdd -
+    PayObj?.charge_object?.charges_obj?.final_amount -
     chargeData?.withChargeAmount
   )?.toFixed(2);
 
+  //final amount condition
   const finalAmount = noCharge
     ? paymentData?.amount
     : chargeData?.isPaymentGateWay
-    ? PayObj?.charge_object?.charges_obj?.final_amount + chargeData?.amountToAdd
+    ? PayObj?.charge_object?.charges_obj?.final_amount
     : chargeData?.withChargeAmount;
 
   useEffect(() => {
@@ -124,6 +126,7 @@ const DForm = (props) => {
     },
   });
 
+  //input for ACH
   const myInput = (obj, key) => {
     return (
       <TextInput
@@ -158,6 +161,7 @@ const DForm = (props) => {
     );
   };
 
+  //dropdown for ACH
   const myDrop = (obj, key) => {
     const newV = obj?.value?.split(",")?.map((it) => {
       return { name: it.trim() };
@@ -177,6 +181,7 @@ const DForm = (props) => {
     );
   };
 
+  //changing value of ACH feilds
   const changeValObj = (val, key) => {
     const dummy_obj = { ...paymentObj };
     dummy_obj[key].answer = val;
@@ -185,6 +190,7 @@ const DForm = (props) => {
     setPaymentObj(dummy_obj);
   };
 
+  //validation for ACH
   const Validation = () => {
     let valid = true;
     const dummy_obj = { ...paymentObj };
@@ -214,15 +220,14 @@ const DForm = (props) => {
     }
   };
 
+  //save order call
   async function SaveOrder(bankData, isNew, cusID) {
     setPaySuccess("loading");
     try {
       const data = {
         name: paymentData?.name,
         amount: chargeData?.withChargeAmount,
-        final_amount:
-          PayObj?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
         app_token: paymentData?.app_token,
         country_id: PayObj?.country_id,
         currency: paymentData?.currency,
@@ -261,14 +266,13 @@ const DForm = (props) => {
     }
   }
 
+  //custom checkout call
   async function paymentApi(bankData, isNew, cusID, code) {
     const isType = PayObj?.charge_object?.charges_obj?.gateway_name;
     let final_data = {
       amount: {
         amount: paymentData?.amount,
-        final_amount:
-          PayObj?.charge_object?.charges_obj?.final_amount +
-          chargeData?.amountToAdd,
+        final_amount: PayObj?.charge_object?.charges_obj?.final_amount,
       },
     };
     if (isType === "adyen" || isType === "authorize_net") {
@@ -369,10 +373,7 @@ const DForm = (props) => {
     setBtnLoader(true);
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
-    myHeaders.append(
-      "X-API-Key",
-      "AQErhmfxK4PGaR1Fw0m/n3Q5qf3Vb5lCAoVTT2BUqmAZb0xtS+fZCSp5LByo8RDBXVsNvuR83LVYjEgiTGAH-hHkppXVNIpKISBipTv5+LSDZi86CBhBVb+pnqfZ5okU=-eF*@2Sd=v?9,y}FG"
-    );
+    myHeaders.append("X-API-Key", originalText?.public_key);
 
     var raw = JSON.stringify({
       amount: {
@@ -428,6 +429,7 @@ const DForm = (props) => {
       });
   };
 
+  //random string for authorize
   function generateRandomString() {
     const characters =
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -441,7 +443,7 @@ const DForm = (props) => {
     return randomString;
   }
 
-  //authorize token
+  //authorize customer Id
   async function getAuthorizeTrasId() {
     setPaySuccess("loading");
     setBtnLoader(true);
@@ -516,6 +518,7 @@ const DForm = (props) => {
     }
   }
 
+  //authorize token
   async function createTokenAuthorize(cusID) {
     setPaySuccess("loading");
     setBtnLoader(true);
@@ -613,6 +616,7 @@ const DForm = (props) => {
     }
   }
 
+  //remove saved card
   async function RemoveSavedCard(confirmSaveType) {
     try {
       const data = {
