@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     // overflow: 'hidden',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    height: 80,
+    height: 90,
   },
   centerTitle: {
     flexDirection: "row",

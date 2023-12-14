@@ -46,7 +46,6 @@ const PaymentAgreegator = (props) => {
     paymentData = {}, //require
     onPaymentDone = () => {},
     modalContainerStyles = {},
-    webViewStyles = {},
     injectedMessage = "",
     onModalClose = () => {},
     merchantIdentifier = "merchant.com.saayam.saayampayment",
@@ -463,6 +462,9 @@ const PaymentAgreegator = (props) => {
                 </View>
               )}
             </View>
+            <Text style={{ color: "#1D1D1D", fontSize: 12, marginTop: 2 }}>
+              + Applicable charges
+            </Text>
             {paySuccess === "loading" ? null : isEmpty(isShow?.toString()) ? (
               <Text style={[styles.moneyText, { marginTop: 4 }]}>
                 Select payment source
@@ -589,7 +591,6 @@ const PaymentAgreegator = (props) => {
                         onPaymentDone={onPaymentDone}
                         paymentMethod={paymentMethod}
                         liveUrl={liveUrl}
-                        webViewStyles={webViewStyles}
                         injectedMessage={injectedMessage}
                         activeIndex={activeIndex}
                         chargeData={chargeData}

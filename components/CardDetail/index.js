@@ -426,6 +426,7 @@ export default function CardDetail(props) {
         base_amount: paymentData?.amount,
         charge_id: subData?.charge_object?.charges_obj?.id,
         platform: "app",
+        charges_json: JSON.stringify(chargeData?.mainChargeData),
       };
       const response = await getApiDataProgressPayment(
         `${liveUrl}save-order`,
