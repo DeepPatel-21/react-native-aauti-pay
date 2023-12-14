@@ -33,6 +33,14 @@ To enable Google Pay in your app, you need to add the following Google Pay API m
 
 Please go through once with [react-native-inappbrowser-reborn](https://www.npmjs.com/package/react-native-inappbrowser-reborn?activeTab=readme) documentation
 
+##### Append the following lines to your ProGuard config (proguard-rules.pro)
+
+-keepattributes _Annotation_
+-keepclassmembers class \*_ {
+@org.greenrobot.eventbus.Subscribe <methods>;
+}
+-keep enum org.greenrobot.eventbus.ThreadMode { _; }
+
 ##### Authentication Flow using Deep Linking
 
 For Deep linking integration you can checkout [Deep Linking](https://reactnavigation.org/docs/deep-linking/) documentation
@@ -121,7 +129,6 @@ For close icons we have to use react-native-vector-icons/AntDesign only.
 | merchantIdentifier       | String   | 'merchant.com.app.saayampayment'                                                                                                                                                                                                                                 | Yes      | Enable Apple Pay for your app [ApplePay Guide](https://developer.apple.com/library/archive/ApplePay_Guide/Configuration.html) & pass merchant ID in this param. It is required to enable Apple Pay. |
 | pluginURL                | String   | 'staging'                                                                                                                                                                                                                                                        | No       | Pass slug according to your server (`staging`, `dev`, `prodapi`)                                                                                                                                    |
 | noCharge                 | Boolean  | false                                                                                                                                                                                                                                                            | No       | if this is true no `appCharges` will be applied                                                                                                                                                     |
-| webViewStyles            | Object   | {}                                                                                                                                                                                                                                                               | No       | Webview container styles                                                                                                                                                                            |
 | injectedMessage          | String   | Empty string                                                                                                                                                                                                                                                     | Yes      | it is for closing the modal via webhook calls                                                                                                                                                       |
 | onModalClose             | Function | () => {}                                                                                                                                                                                                                                                         | No       | Closing the modal when state changes                                                                                                                                                                |
 | buttonTitle              | String   | Aauti Pay                                                                                                                                                                                                                                                        | No       | Button Title                                                                                                                                                                                        |
